@@ -1,0 +1,38 @@
+<script type="text/javascript">
+    RED.nodes.registerType('solaredge-optimizers', {
+        category: 'function',
+        color: '#a6bbcf',
+        defaults: {
+            siteId: { value: "" }
+        },
+        credentials: {
+            username: { type: "text" },
+            password: { type: "password" }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "file.svg",
+        label: function () {
+            return this.name || "solaredge-optimizers";
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="solaredge-optimizers">
+    <div class="form-row">
+        <label for="node-input-username"><i class="fa fa-tag"></i> Username</label>
+        <input type="text" id="node-input-username">
+    </div>
+    <div class="form-row">
+        <label for="node-input-password"><i class="fa fa-tag"></i> Password</label>
+        <input type="password" id="node-input-password">
+    </div>   
+    <div class="form-row">
+        <label for="node-input-siteId"><i class="fa fa-tag"></i> Site ID</label>
+        <input type="text" id="node-input-siteId" placeholder="Site ID">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="lower-case">
+    <p>Scrapes optimizer power data from solaredge cloud</p>
+</script>
