@@ -5,6 +5,7 @@ module.exports = function (RED) {
     function SolaredgeOptimizersNode(config) {
         RED.nodes.createNode(this, config);
         this.siteId = config.siteId;
+        this.timeUnit = config.timeUnit;
         var node = this;
         node.on('input', async function (msg, send, done) {
             let headers;
@@ -15,7 +16,7 @@ module.exports = function (RED) {
                 msg.payload = error;
             }
             try {
-                let data = await getData(headers, this.siteId);
+                let data = await getData(headers, this.siteId, this.timeUnit);
                 msg.payload = data;
             } catch (error) {
                 node.warn('error while fetching optimizer data')
@@ -70,10 +71,11 @@ module.exports = function (RED) {
         }
     }
 
-    async function getData(headers, siteId) {
+    async function getData(headers, siteId, timeUnit) {
         var urlencoded = new URLSearchParams();
         urlencoded.append("fieldId", siteId);
-        urlencoded.append("timeUnit", "4");
+        urlencoded.append("timeUnit", timeUnit);
+        console.log(timeUnit);
         headers["Content-Type"] = "application/x-www-form-urlencoded";
         var requestOptions = {
             method: 'POST',

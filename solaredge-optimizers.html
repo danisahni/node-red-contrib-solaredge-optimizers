@@ -3,7 +3,7 @@
         category: 'function',
         color: '#a6bbcf',
         defaults: {
-            siteId: { value: "" }
+            timeUnit: { value: 4 },
         },
         credentials: {
             username: { type: "text" },
@@ -30,6 +30,14 @@
     <div class="form-row">
         <label for="node-input-siteId"><i class="fa fa-tag"></i> Site ID</label>
         <input type="text" id="node-input-siteId" placeholder="Site ID">
+    </div>
+    <div class="form-row">
+        <label for="node-input-timeUnit"> Interval </label>
+        <select value="" id="node-input-timeUnit" placeholder="choose">
+            <option value="4">daily</option>
+            <option value="5">weekly</option>
+        </select>
+
     </div>
 </script>
 
