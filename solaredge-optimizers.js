@@ -10,14 +10,17 @@ module.exports = function (RED) {
         node.on('input', async function (msg, send, done) {
             let headers;
             try {
-                headers = await getCookiesAndHeaders(this.credentials.username, this.credentials.password);
+                headers = await getCookiesAndHeaders(node, this.credentials.username, this.credentials.password);
             } catch (error) {
                 node.warn('error while getting authentication cookies')
+                node.warn(error.stack);
                 msg.payload = error;
             }
             try {
-                let data = await getData(headers, this.siteId, this.timeUnit);
-                msg.payload = data;
+                if (headers) {
+                    let data = await getData(headers, this.siteId, this.timeUnit);
+                    msg.payload = data;
+                }
             } catch (error) {
                 node.warn('error while fetching optimizer data')
                 msg.payload = error;
@@ -28,7 +31,7 @@ module.exports = function (RED) {
         return;
     }
 
-    async function getCookiesAndHeaders(username, password) {
+    async function getCookiesAndHeaders(node, username, password) {
         let response;
 
         var urlencoded = new URLSearchParams();
@@ -47,7 +50,7 @@ module.exports = function (RED) {
 
         try {
             response = await fetch(LOGIN_URL, requestOptions);
-
+            node.log(response.status);
         } catch (error) {
             response = error.response
         }
@@ -58,9 +61,9 @@ module.exports = function (RED) {
                 headers: {
                     cookie: cookies,
                 },
-                redirect: 'manual',
             }
             let response2 = await fetch(response.headers.get('Location'), requestOptions2)
+            node.log(response2.status);
             let cookies2 = response2.headers.getSetCookie();
             let xcsrf = response2.headers.get('X-CSRF-TOKEN');
             cookies2.push(...cookies);
@@ -75,7 +78,6 @@ module.exports = function (RED) {
         var urlencoded = new URLSearchParams();
         urlencoded.append("fieldId", siteId);
         urlencoded.append("timeUnit", timeUnit);
-        console.log(timeUnit);
         headers["Content-Type"] = "application/x-www-form-urlencoded";
         var requestOptions = {
             method: 'POST',
