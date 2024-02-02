@@ -1,3 +1,7 @@
+const axios = require('axios');
+const wrapper = require('axios-cookiejar-support').wrapper;
+const CookieJar = require('tough-cookie').CookieJar;
+
 const LOGIN_URL = 'https://monitoring.solaredge.com/solaredge-apigw/api/login';
 const DATA_URL = 'https://monitoring.solaredge.com/solaredge-web/p/playbackData';
 
@@ -8,19 +12,9 @@ module.exports = function (RED) {
         this.timeUnit = config.timeUnit;
         var node = this;
         node.on('input', async function (msg, send, done) {
-            let headers;
             try {
-                headers = await getCookiesAndHeaders(node, this.credentials.username, this.credentials.password);
-            } catch (error) {
-                node.warn('error while getting authentication cookies')
-                node.warn(error.stack);
-                msg.payload = error;
-            }
-            try {
-                if (headers) {
-                    let data = await getData(headers, this.siteId, this.timeUnit);
-                    msg.payload = data;
-                }
+                let data = await getData(this.credentials.username, this.credentials.password, this.siteId, this.timeUnit);
+                msg.payload = data;
             } catch (error) {
                 node.warn('error while fetching optimizer data')
                 msg.payload = error;
@@ -31,67 +25,43 @@ module.exports = function (RED) {
         return;
     }
 
-    async function getCookiesAndHeaders(node, username, password) {
-        let response;
-
-        var urlencoded = new URLSearchParams();
-        urlencoded.append("j_username", username);
-        urlencoded.append("j_password", password);
-
-        var requestOptions = {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: urlencoded,
-            redirect: 'manual',
-        };
-
-
+    async function getData(username, password, siteId, timeUnit) {
+        const jar = new CookieJar();
+        const client = wrapper(axios.create({ jar }));
+        let x_csrf_token = undefined;
         try {
-            response = await fetch(LOGIN_URL, requestOptions);
-            node.log(response.status);
-        } catch (error) {
-            response = error.response
-        }
-        if (response.status == 302) {
-            let cookies = response.headers.getSetCookie();
-            let requestOptions2 = {
-                method: 'GET',
+            const params = new URLSearchParams();
+            params.append('j_username', username);
+            params.append('j_password', password);
+            let response = await client.post(LOGIN_URL, params, {
                 headers: {
-                    cookie: cookies,
-                },
-            }
-            let response2 = await fetch(response.headers.get('Location'), requestOptions2)
-            node.log(response2.status);
-            let cookies2 = response2.headers.getSetCookie();
-            let xcsrf = response2.headers.get('X-CSRF-TOKEN');
-            cookies2.push(...cookies);
-            return {
-                cookie: cookies2,
-                'X-CSRF-TOKEN': xcsrf,
-            }
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
+            });
+            x_csrf_token = response.headers['x-csrf-token'];
+            console.log(response);
+        } catch (error) {
+            console.log(error)
+        }
+        try {
+            const params = new URLSearchParams();
+            params.append("fieldId", siteId);
+            params.append("timeUnit", timeUnit);
+
+            let response = await client.post(DATA_URL, params, {
+                headers: {
+                    'X-CSRF-TOKEN': x_csrf_token,
+                }
+            })
+            let data = cleanUpData(response.data);
+            return data;
+        }
+        catch (error) {
+            console.log(error);
         }
     }
 
-    async function getData(headers, siteId, timeUnit) {
-        var urlencoded = new URLSearchParams();
-        urlencoded.append("fieldId", siteId);
-        urlencoded.append("timeUnit", timeUnit);
-        headers["Content-Type"] = "application/x-www-form-urlencoded";
-        var requestOptions = {
-            method: 'POST',
-            headers: headers,
-            body: urlencoded,
-        };
-        let response = await fetch(DATA_URL, requestOptions)
-        let data = cleanUpData(await response.arrayBuffer());
-        return data;
-    }
-
-    function cleanUpData(arrayBuffer) {
-        let decoder = new TextDecoder();
-        let text = decoder.decode(arrayBuffer);
+    function cleanUpData(text) {
         text = text.replaceAll('\'', '"');
         text = text.replaceAll('Array', '').replaceAll('key', '"key"').replaceAll(
             'value', '"value"');
