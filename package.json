@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-solaredge-optimizers",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Read optimizer data from solaredge cloud",
   "scripts": {
     "node-red": "node /usr/local/lib/node_modules/node-red/red.js"
