@@ -16,21 +16,23 @@ The following data has to be provided in the node to access the optimizer data:
   * **Username**: Your username at https://monitoring.solaredge.com.
   * **Password**: The corresponding password
   * **Site ID**: The ID of your site.
+  * **Time Interval**:
+    * Daily: Data of the current day
+    * Weekly: Data of the current/last week
 
-The node will return the power in Watt for each inverter, string and optimizer in 15 minute intervals for the current day. Each component is identified via a reporterId.
+Optional inputs are:
+  * **Collect Additional Info**: Scrapes the monitoring page for additional info such as *description*, *type*, *serial number* and *manufacturer*.
+  * **Format For InfluxDB**: Returns the data in a format so that it can be directly sent to an InfluxDB batch node from [node-red-contrib-influxdb](https://flows.nodered.org/node/node-red-contrib-influxdb) (tested for InfluxDB 2.0)
+  * **InfluxDB Measurement**: In case *Format for InfluxDB* is checked, the name of the measurement.
 
-## ReporterId mapping
-To find the corresponding inverter, string or optimizer behind the cryptic reporterId, login to https://monitoring.solaredge.com and go to the site's layout page.
 
-Open your **Web Developer Tools** (e.g. press F12 in Firefox) and go to the **Network** tab.
-Now select - for instance - a panel and press the info button. On the network monitor there should be a GET request stating the reporterID.
+The node will return the power in Watt for each inverter, string and optimizer in 15 minute intervals for the selected time interval.
 
-![Network Monitor](images/reporterId.png?raw=true "Title")
 
-## Sources
+## Sources / Credits
 
-The scraping code is based on this [gist](https://gist.github.com/cooldil/0b2c5ee22befbbfcdefd06c9cf2b7a98). 
-The mapping idea is taken from the youtube video of [meintechblog.de](https://meintechblog.de/2023/09/08/solaredge-pv-leistung-auf-panelebene-selbst-mitloggen-und-per-grafana-visualisieren/)
+The scraping code is based on this [gist](https://gist.github.com/cooldil/0b2c5ee22befbbfcdefd06c9cf2b7a98) and translated from Python to JavaScript.
+The scraping for the additional information was inspired by the youtube video of [meintechblog.de](https://meintechblog.de/2023/09/08/solaredge-pv-leistung-auf-panelebene-selbst-mitloggen-und-per-grafana-visualisieren/)
 
 
 ## License
