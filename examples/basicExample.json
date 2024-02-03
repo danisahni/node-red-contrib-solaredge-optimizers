@@ -1,0 +1,60 @@
+[
+    {
+        "id": "ca351ccde26010ec",
+        "type": "inject",
+        "z": "83d53046cb1c23b8",
+        "name": "Every Hour",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "3600",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 280,
+        "wires": [
+            [
+                "22a89d726b941eed"
+            ]
+        ]
+    },
+    {
+        "id": "22a89d726b941eed",
+        "type": "solaredge-optimizers",
+        "z": "83d53046cb1c23b8",
+        "siteId": "12345",
+        "timeUnit": "4",
+        "collectAdditionalInfo": true,
+        "formatForInfluxDb": false,
+        "influxDbMeasurement": "optimizers",
+        "x": 400,
+        "y": 280,
+        "wires": [
+            [
+                "545ece7c9d170f46"
+            ]
+        ]
+    },
+    {
+        "id": "545ece7c9d170f46",
+        "type": "debug",
+        "z": "83d53046cb1c23b8",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 620,
+        "y": 280,
+        "wires": []
+    }
+]

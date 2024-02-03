@@ -1,0 +1,76 @@
+[
+    {
+        "id": "ca351ccde26010ec",
+        "type": "inject",
+        "z": "83d53046cb1c23b8",
+        "name": "Every Hour",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "3600",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 280,
+        "wires": [
+            [
+                "22a89d726b941eed"
+            ]
+        ]
+    },
+    {
+        "id": "22a89d726b941eed",
+        "type": "solaredge-optimizers",
+        "z": "83d53046cb1c23b8",
+        "siteId": "12345",
+        "timeUnit": "4",
+        "collectAdditionalInfo": true,
+        "formatForInfluxDb": false,
+        "influxDbMeasurement": "optimizers",
+        "x": 400,
+        "y": 280,
+        "wires": [
+            [
+                "13331bfa3d5b2c19"
+            ]
+        ]
+    },
+    {
+        "id": "13331bfa3d5b2c19",
+        "type": "influxdb batch",
+        "z": "83d53046cb1c23b8",
+        "influxdb": "aacdd21dfb92a624",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "your_organization",
+        "bucket": "test_bucket",
+        "x": 670,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "aacdd21dfb92a624",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": "8086",
+        "protocol": "http",
+        "database": "database",
+        "name": "Your InfluxDB",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://localhost:8086",
+        "timeout": "10",
+        "rejectUnauthorized": false
+    }
+]
