@@ -3,11 +3,22 @@
         category: 'function',
         color: '#a6bbcf',
         defaults: {
-            siteId: { value: '' },
+            siteId: {
+                value: '', validate: function (value) {
+                    return value.length > 0;
+                }
+            },
             timeUnit: { value: 4 },
+            collectAdditionalInfo: { value: true },
+            formatForInfluxDb: { value: true },
+            influxDbMeasurement: {
+                value: 'optimizers', validate: function (value) {
+                    return value.length > 0;
+                }
+            },
         },
         credentials: {
-            username: { type: "text" },
+            username: { type: "text", },
             password: { type: "password" }
         },
         inputs: 1,
@@ -15,8 +26,18 @@
         icon: "file.svg",
         label: function () {
             return this.name || "solaredge-optimizers";
-        }
+        },
+        oneditprepare: function () {
+            $("#node-input-formatForInfluxDb").change(function () {
+                if ($('#node-input-formatForInfluxDb').is(":checked")) {
+                    $("#influxDbMeasurement-form-row").show();
+                } else {
+                    $("#influxDbMeasurement-form-row").hide();
+                }
+            });
+        },
     });
+
 </script>
 
 <script type="text/html" data-template-name="solaredge-optimizers">
@@ -38,8 +59,20 @@
             <option value="4">daily</option>
             <option value="5">weekly</option>
         </select>
-
     </div>
+    <div class="form-row">
+        <label for="node-input-collectAdditionalInfo"> Collect additional info </label>
+        <input type="checkbox" id="node-input-collectAdditionalInfo">
+    </div>    
+    <div class="form-row">
+        <label for="node-input-formatForInfluxDb"> Format for InfluxDB </label>
+        <input type="checkbox" id="node-input-formatForInfluxDb">
+    </div>
+    <div class="form-row" id="influxDbMeasurement-form-row" class="fa fa-tag">
+        <label for="node-input-influxDbMeasurement"> InfluxDB Measurement </label>
+        <input type="text" id="node-input-influxDbMeasurement" placeholder="Measurement">
+    </div>
+
 </script>
 
 <script type="text/html" data-help-name="lower-case">
