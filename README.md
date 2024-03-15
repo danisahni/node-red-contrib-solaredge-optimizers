@@ -22,7 +22,7 @@ The following data has to be provided in the node to access the optimizer data:
 
 Optional inputs are:
   * **Collect Additional Info**: Scrapes the monitoring page for additional info such as *description*, *type*, *serial number* and *manufacturer*.
-  * **Format For InfluxDB**: Returns the data in a format so that it can be directly sent to an InfluxDB batch node from [node-red-contrib-influxdb](https://flows.nodered.org/node/node-red-contrib-influxdb) (tested for InfluxDB 2.0)
+  * **Format For InfluxDB**: Returns the data in a format so that it can be directly sent to an InfluxDB batch node from [node-red-contrib-influxdb](https://flows.nodered.org/node/node-red-contrib-influxdb) (tested for InfluxDB 2.0). An example flow is provided in [examples/influxDbExample.json](./examples/influxDbExample.json).
   * **InfluxDB Measurement**: In case *Format for InfluxDB* is checked, the name of the measurement.
 
 
