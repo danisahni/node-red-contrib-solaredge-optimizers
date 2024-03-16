@@ -21,6 +21,9 @@ The following data has to be provided in the node to access the optimizer data:
     * Weekly: Data of the current/last week
 
 Optional inputs are:
+  * **Time Zone Settings** *: Choose the time zone of the output data timestamps:
+    * UTC: Returns timestamps in UTC time
+    * Local: Returns timestamps in local time zone
   * **Collect Additional Info**: Scrapes the monitoring page for additional info such as *description*, *type*, *serial number* and *manufacturer*.
   * **Format For InfluxDB**: Returns the data in a format so that it can be directly sent to an InfluxDB batch node from [node-red-contrib-influxdb](https://flows.nodered.org/node/node-red-contrib-influxdb) (tested for InfluxDB 2.0). An example flow is provided in [examples/influxDbExample.json](./examples/influxDbExample.json).
   * **InfluxDB Measurement**: In case *Format for InfluxDB* is checked, the name of the measurement.
