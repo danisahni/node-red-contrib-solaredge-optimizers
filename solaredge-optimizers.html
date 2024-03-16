@@ -10,6 +10,7 @@
         },
       },
       timeUnit: { value: 4 },
+      timeZoneSettings: { value: "UTC" },
       collectAdditionalInfo: { value: true },
       formatForInfluxDb: { value: true },
       influxDbMeasurement: {
@@ -59,6 +60,13 @@
     <select value="" id="node-input-timeUnit" placeholder="choose">
       <option value="4">daily</option>
       <option value="5">weekly</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-timeZoneSettings"> Time Zone Settings </label>
+    <select value="" id="node-input-timeZoneSettings" placeholder="choose">
+      <option value="UTC">UTC</option>
+      <option value="Local">Local</option>
     </select>
   </div>
   <div class="form-row">

@@ -13,6 +13,8 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
     this.siteId = config.siteId;
     this.timeUnit = config.timeUnit;
+    console.log(config.timeZoneSettings);
+    this.timeZoneSettings = config.timeZoneSettings;
     this.collectAdditionalInfo = config.collectAdditionalInfo;
     this.formatForInfluxDb = config.formatForInfluxDb;
     this.influxDbMeasurement = config.influxDbMeasurement;
@@ -25,7 +27,13 @@ module.exports = function (RED) {
           this.credentials.username,
           this.credentials.password
         );
-        let data = await getData(client, token, this.siteId, this.timeUnit);
+        let data = await getData(
+          client,
+          token,
+          this.siteId,
+          this.timeUnit,
+          this.timeZoneSettings
+        );
         if (this.collectAdditionalInfo) {
           let reporterIds = data.map((x) => x.reporterId);
           let tags = await getTags(client, token, this.siteId, reporterIds);
@@ -75,7 +83,13 @@ module.exports = function (RED) {
     return x_csrf_token;
   }
 
-  async function getData(client, x_csrf_token, siteId, timeUnit) {
+  async function getData(
+    client,
+    x_csrf_token,
+    siteId,
+    timeUnit,
+    timeZoneSettings
+  ) {
     try {
       const params = new URLSearchParams();
       params.append("fieldId", siteId);
@@ -87,7 +101,7 @@ module.exports = function (RED) {
         },
       });
 
-      let data = cleanUpData(response.data);
+      let data = cleanUpData(response.data, timeZoneSettings);
       return data;
     } catch (error) {
       console.log(error);
@@ -134,7 +148,7 @@ module.exports = function (RED) {
     return tags;
   }
 
-  function cleanUpData(text) {
+  function cleanUpData(text, timeZoneSettings) {
     text = text.replaceAll("'", '"');
     text = text
       .replaceAll("Array", "")
@@ -145,9 +159,18 @@ module.exports = function (RED) {
       .replaceAll("fieldData", '"fieldData"')
       .replaceAll("reportersData", '"reportersData"');
     jsonData = JSON.parse(text);
+
     data = [];
+    const regex = /GMT([+-]\d{4})/;
+    const localGMT = new Date().toString().match(regex)[0];
+
     for (const dateString of Object.keys(jsonData["reportersData"])) {
-      let date = new Date(dateString);
+      let localDateString =
+        timeZoneSettings == "Local"
+          ? dateString.replace("GMT", localGMT)
+          : dateString;
+      let date = new Date(localDateString);
+
       for (const sid of Object.keys(jsonData["reportersData"][dateString])) {
         for (const entry of Object.values(
           jsonData["reportersData"][dateString][sid]
