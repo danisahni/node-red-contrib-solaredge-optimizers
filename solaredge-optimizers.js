@@ -13,7 +13,6 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, config);
     this.siteId = config.siteId;
     this.timeUnit = config.timeUnit;
-    console.log(config.timeZoneSettings);
     this.timeZoneSettings = config.timeZoneSettings;
     this.collectAdditionalInfo = config.collectAdditionalInfo;
     this.formatForInfluxDb = config.formatForInfluxDb;
