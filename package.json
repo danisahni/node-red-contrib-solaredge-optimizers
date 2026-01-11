@@ -4,7 +4,7 @@
   "description": "Read optimizer data from solaredge cloud",
   "main": "dist/nodes/solaredge-optimizers.js",
   "scripts": {
-    "build": "tsc && copyfiles -u 2 src/nodes/*.html dist/nodes",
+    "build": "tsc && copyfiles -u 2 src/nodes/*.html dist/nodes && node scripts/gen-editor-params.cjs",
     "build:watch": "tsc --watch",
     "dev": "npm run build:watch",
     "prepublishOnly": "npm run build",
@@ -13,13 +13,15 @@
   },
   "files": [
     "dist/",
+    "resources/",
     "README.md",
     "LICENSE"
   ],
   "node-red": {
     "version": ">=3.1.1",
     "nodes": {
-      "solaredge-optimizers": "dist/nodes/solaredge-optimizers.js"
+      "solaredge-optimizers": "dist/nodes/solaredge-optimizers.js",
+      "solaredge-diagram-data-scraper": "dist/nodes/solaredge-diagram-data-scraper.js"
     }
   },
   "engines": {

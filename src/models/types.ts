@@ -9,6 +9,16 @@ export interface SolaredgeOptimizersConfig extends NodeDef {
   influxDbMeasurement: string;
 }
 
+export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
+  siteId: string;
+  timeUnit: string;
+  timeZoneSettings: "Local" | "GMT";
+  collectAdditionalInfo: boolean;
+  formatForInfluxDb: boolean;
+  influxDbMeasurement: string;
+  selectedItemTypes?: { [key: string]: boolean };
+}
+
 export interface SolaredgeOptimizersNode extends Node {
   siteId: string;
   timeUnit: string;
@@ -16,6 +26,17 @@ export interface SolaredgeOptimizersNode extends Node {
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
+}
+
+export interface SolarEdgeDiagramDataScraperNode extends Node {
+  siteId: string;
+  timeUnit: string;
+  timeZoneSettings: "Local" | "GMT";
+  collectAdditionalInfo: boolean;
+  formatForInfluxDb: boolean;
+  influxDbMeasurement: string;
+  selectedItemTypes: { [key: string]: boolean };
+  itemTypes: string[];
 }
 
 export interface OptimizerDataPoint {

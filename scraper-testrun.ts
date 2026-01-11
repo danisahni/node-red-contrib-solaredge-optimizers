@@ -3,6 +3,14 @@
 import { config } from "dotenv";
 import { SolarEdgeOptimizerScraperService } from "./src/services/solaredge-optimizer-scraper.service";
 import { SolarEdgeDiagramScraper } from "./src/services/solaredege-diagram-scraper.service";
+import fs from "fs";
+import {
+  ItemType,
+  SolarEdgeResponse,
+  SiteNode,
+  MeasurementRequestData,
+  ITEM_TYPES,
+} from "./src/models";
 
 // Lade Umgebungsvariablen aus .env-Datei
 config();
@@ -64,9 +72,30 @@ async function mainDiagramScraper() {
     CONFIG.username,
     CONFIG.password
   );
+  // await scraper.login();
+  // await scraper.bootstrapSession();
+  // const site = await scraper.getSite();
+  // console.log(site);
+  const fileContent = fs.readFileSync("./response.json", "utf-8");
+  const tree = JSON.parse(fileContent) as SolarEdgeResponse;
+  const typeSortedSiteNodes: SiteNode[][] = [];
+
+  ITEM_TYPES.forEach((t) => {
+    typeSortedSiteNodes.push(
+      scraper.extractSiteNodesByItemType(t, tree.siteStructure)
+    );
+  });
+  console.log(typeSortedSiteNodes);
+
+  // create data for get measurements
   await scraper.login();
   await scraper.bootstrapSession();
-  await scraper.getSite();
+  const requestContent = fs.readFileSync("./request.json", "utf-8");
+  const requestedMeasurementsJSON = JSON.parse(
+    requestContent
+  ) as MeasurementRequestData;
+  const measurements = await scraper.getMeasurements(requestedMeasurementsJSON);
+  console.log(measurements);
 }
 // Graceful shutdown
 process.on("SIGINT", () => {
@@ -75,4 +104,4 @@ process.on("SIGINT", () => {
 });
 
 // Programm starten
-main();
+mainDiagramScraper();

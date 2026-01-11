@@ -3,7 +3,15 @@
 import axios from "axios";
 import type { AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
-import { CookieJar } from "tough-cookie";
+import { Cookie, CookieJar } from "tough-cookie";
+import fs from "fs";
+import {
+  ItemId,
+  ItemType,
+  MeasurementRequestData,
+  SiteNode,
+  SolarEdgeResponse,
+} from "../models";
 
 export class SolarEdgeDiagramScraper {
   private siteId: string;
@@ -22,10 +30,10 @@ export class SolarEdgeDiagramScraper {
     this.api = wrapper(axios.create({ jar }));
 
     // Set default Basic Auth for all requests
-    this.api.defaults.auth = {
-      username: this.username,
-      password: this.password,
-    };
+    // this.api.defaults.auth = {
+    //   username: this.username,
+    //   password: this.password,
+    // };
 
     // Set default headers
     this.api.defaults.headers.common["User-Agent"] =
@@ -102,9 +110,9 @@ export class SolarEdgeDiagramScraper {
     }
   }
 
-  async bootstrapSession(): Promise<void> {
+  async bootstrapSession(): Promise<Cookie[] | undefined> {
     try {
-      const response = await this.api.get(
+      await this.api.get(
         `https://monitoring.solaredge.com/solaredge-web/p/chartParamsList?fieldId=${this.siteId}`,
         {
           headers: {
@@ -112,18 +120,21 @@ export class SolarEdgeDiagramScraper {
           },
         }
       );
+      const cookies = await this.api.defaults.jar?.getCookies(
+        "https://monitoring.solaredge.com"
+      );
+
+      return cookies;
     } catch (error: any) {
       throw new Error(`bootstrapSession fehlgeschlagen: ${error.message}`);
     }
   }
 
   async getMeasurements(
-    requestedMeasurementsJSON: object[],
-    startDate: string,
-    endDate: string
+    requestedMeasurementsJSON: MeasurementRequestData
+    // startDate: string,
+    // endDate: string
   ) {
-    /* Works only, if before getHisotryData() was called. Otherwise session cookie is missing. */
-    let debug = undefined;
     try {
       const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/devices-measurements?start-date=2026-01-02&end-date=2026-01-02`;
       const response = await this.api.post(url, requestedMeasurementsJSON, {
@@ -139,12 +150,12 @@ export class SolarEdgeDiagramScraper {
     }
   }
 
-  async getSite(): Promise<Site> {
+  async getTree(): Promise<SolarEdgeResponse> {
     const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/tree`;
     const response = await this.api.get(url, {
       maxRedirects: 0,
       validateStatus: () => true, // 401 wird NICHT als Exception geworfen
-      responseType: "text", // Body als Text (auch wenn HTML/JSON)
+      // responseType: "text", // Body als Text (auch wenn HTML/JSON)
       headers: {
         Accept: "application/json, text/plain, */*",
         Referer: "https://monitoring.solaredge.com/",
@@ -152,10 +163,28 @@ export class SolarEdgeDiagramScraper {
         "X-XSRF-TOKEN": this.api.defaults.headers.common["X-CSRF-TOKEN"],
       },
     });
-    console.log("status", response.status);
-    console.log("headers", response.headers);
-    console.log("body (first 500)", String(response.data).slice(0, 500));
-    return new Site(this.siteId);
+    console.log("response.data", response.data);
+
+    // Speichere response.data in eine JSON-Datei
+    fs.writeFileSync("response.json", JSON.stringify(response.data, null, 2));
+    console.log("Response data saved to response.json");
+
+    return response.data as SolarEdgeResponse;
+  }
+
+  extractSiteNodesByItemType(
+    itemType: ItemType,
+    siteNode: SiteNode
+  ): SiteNode[] {
+    const result: SiteNode[] = [];
+    if (siteNode.itemId.itemType == itemType) {
+      result.push(siteNode);
+    }
+    siteNode.children?.forEach((child) => {
+      const childResults = this.extractSiteNodesByItemType(itemType, child);
+      result.push(...childResults);
+    });
+    return result;
   }
 
   async getDiagramData(): Promise<void> {
@@ -167,153 +196,5 @@ export class SolarEdgeDiagramScraper {
     };
     const response = await this.api.post(url, data);
     console.log(response);
-  }
-}
-
-export class Site {
-  id: string;
-
-  constructor(id: string) {
-    this.id = id;
-  }
-}
-
-export class SolarEdgeInverter {
-  inverterId: string;
-  serialNumber: string;
-  name: string;
-  displayName: string;
-  relativeOrder: number;
-  type: string;
-  operationsKey: string;
-  strings: SolarEdgeString[];
-
-  constructor(
-    jsonObj: any,
-    index: number,
-    index2: number = 0,
-    powerMeterPresent: boolean = false
-  ) {
-    const data = powerMeterPresent
-      ? jsonObj.logicalTree.children[index].children[index2].data
-      : jsonObj.logicalTree.children[index].data;
-
-    this.inverterId = data.id;
-    this.serialNumber = data.serialNumber;
-    this.name = data.name;
-    this.displayName = data.displayName;
-    this.relativeOrder = data.relativeOrder;
-    this.type = data.type;
-    this.operationsKey = data.operationsKey;
-
-    const children = powerMeterPresent
-      ? jsonObj.logicalTree.children[index].children[index2].children
-      : jsonObj.logicalTree.children[index].children;
-
-    this.strings = this.getStringInformation(children);
-  }
-
-  private getStringInformation(children: any[]): SolarEdgeString[] {
-    const strings: SolarEdgeString[] = [];
-
-    for (const child of children) {
-      if (child.data.name.toUpperCase().includes("STRING")) {
-        strings.push(new SolarEdgeString(child));
-      } else {
-        for (const subChild of child.children || []) {
-          strings.push(new SolarEdgeString(subChild));
-        }
-      }
-    }
-
-    return strings;
-  }
-}
-
-export class SolarEdgeString {
-  stringId: string;
-  serialNumber: string;
-  name: string;
-  displayName: string;
-  relativeOrder: number;
-  type: string;
-  operationsKey: string;
-  optimizers: SolarEdgeOptimizer[];
-
-  constructor(jsonObj: any) {
-    this.stringId = jsonObj.data.id;
-    this.serialNumber = jsonObj.data.serialNumber;
-    this.name = jsonObj.data.name;
-    this.displayName = jsonObj.data.displayName;
-    this.relativeOrder = jsonObj.data.relativeOrder;
-    this.type = jsonObj.data.type;
-    this.operationsKey = jsonObj.data.operationsKey;
-    this.optimizers = this.getOptimizers(jsonObj);
-  }
-
-  private getOptimizers(jsonObj: any): SolarEdgeOptimizer[] {
-    const optimizers: SolarEdgeOptimizer[] = [];
-
-    for (const child of jsonObj.children || []) {
-      optimizers.push(new SolarEdgeOptimizer(child));
-    }
-
-    return optimizers;
-  }
-}
-
-export class SolarEdgeOptimizer {
-  optimizerId: string;
-  serialNumber: string;
-  name: string;
-  displayName: string;
-  relativeOrder: number;
-  type: string;
-  operationsKey: string;
-
-  constructor(jsonObj: any) {
-    this.optimizerId = jsonObj.data.id;
-    this.serialNumber = jsonObj.data.serialNumber;
-    this.name = jsonObj.data.name;
-    this.displayName = jsonObj.data.displayName;
-    this.relativeOrder = jsonObj.data.relativeOrder;
-    this.type = jsonObj.data.type;
-    this.operationsKey = jsonObj.data.operationsKey;
-  }
-}
-
-export class SolarEdgeOptimizerData {
-  serialnumber: string;
-  panel_id: string;
-  panel_description: string;
-  lastmeasurement: Date;
-  model: string;
-  manufacturer: string;
-  current: number;
-  optimizer_voltage: number;
-  power: number;
-  voltage: number;
-  lifetime_energy: number = 0;
-
-  constructor(panelId: string, jsonObject: any) {
-    this.serialnumber = jsonObject.serialNumber;
-    this.panel_id = panelId;
-    this.panel_description = jsonObject.description;
-
-    // Parse the date like Python version
-    const rawDate = jsonObject.lastMeasurementDate;
-    const dateParts = rawDate.split(" ");
-    const newTime = `${dateParts[0]} ${dateParts[1]} ${dateParts[2]} ${dateParts[3]} ${dateParts[5]}`;
-    this.lastmeasurement = new Date(newTime);
-
-    this.model = jsonObject.model;
-    this.manufacturer = jsonObject.manufacturer;
-
-    this.current = parseFloat(jsonObject.measurements["Current [A]"]);
-    this.optimizer_voltage = parseFloat(
-      jsonObject.measurements["Optimizer Voltage [V]"]
-    );
-    this.power = parseFloat(jsonObject.measurements["Power [W]"]);
-    this.voltage = parseFloat(jsonObject.measurements["Voltage [V]"]);
   }
 }

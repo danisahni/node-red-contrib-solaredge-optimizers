@@ -1,0 +1,148 @@
+<script src="/resources/node-red-contrib-solaredge-optimizers/parameters.js"></script>
+<script type="text/javascript">
+  RED.nodes.registerType("solaredge-diagram-data-scraper", {
+    category: "function",
+    color: "#a6bbcf",
+    defaults: {
+      siteId: {
+        value: "",
+        validate: function (value) {
+          return value.length > 0;
+        },
+      },
+      timeUnit: { value: 4 },
+      timeZoneSettings: { value: "UTC" },
+      collectAdditionalInfo: { value: true },
+      formatForInfluxDb: { value: true },
+      influxDbMeasurement: {
+        value: "optimizers",
+        validate: function (value) {
+          return value.length > 0;
+        },
+      },
+      selectedItemTypes: { value: [] },
+    },
+    credentials: {
+      username: { type: "text" },
+      password: { type: "password" },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "font-awesome/fa-sun-o",
+    label: function () {
+      return this.name || "solaredge-diagram-data-scraper";
+    },
+    oneditprepare: function () {
+      $("#node-input-formatForInfluxDb").change(function () {
+        if ($("#node-input-formatForInfluxDb").is(":checked")) {
+          $("#influxDbMeasurement-form-row").show();
+        } else {
+          $("#influxDbMeasurement-form-row").hide();
+        }
+      });
+      var defs = window.SOLAREDGE_ENUMS || {};
+      const itemTypes = defs.ITEM_TYPES || [];
+      const selectedItemTypes = Array.isArray(this.selectedItemTypes)
+        ? this.selectedItemTypes
+        : [];
+      const $container = $("#node-input-options-container");
+      $container.empty();
+
+      // hidden input mit initialem Wert füllen (als JSON string)
+      $("#node-input-selectedItemTypes").val(JSON.stringify(selectedItemTypes));
+
+      itemTypes.forEach((itemType) => {
+        const checkboxId = `node-input-item-type-${itemType}`;
+
+        const $row = $(`
+          <div class="nr-checkbox-row" style="margin: 4px 0;">
+            <label for="${checkboxId}" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="${checkboxId}" data-id="${itemType}" />
+              <span>${itemType}</span>
+            </label>
+          </div>
+        `);
+
+        // initial check-state
+        $row
+          .find("input[type=checkbox]")
+          .prop("checked", selectedItemTypes.includes(itemType));
+
+        $container.append($row);
+      });
+    },
+    oneditsave: function () {
+      // final einsammeln beim Speichern
+      const chosen = $(
+        "#node-input-options-container input[type=checkbox]:checked"
+      )
+        .map(function () {
+          return $(this).data("id");
+        })
+        .get();
+
+      // Node-RED Property setzen (wird gespeichert)
+      this.selectedItemTypes = chosen;
+
+      // hidden input konsistent halten (optional)
+      $("#node-input-selectedItemTypes").val(JSON.stringify(chosen));
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="solaredge-diagram-data-scraper">
+  <div class="form-row">
+    <label for="node-input-username"><i class="fa fa-tag"></i> Username</label>
+    <input type="text" id="node-input-username" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-password"><i class="fa fa-tag"></i> Password</label>
+    <input type="password" id="node-input-password" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-siteId"><i class="fa fa-tag"></i> Site ID</label>
+    <input type="text" id="node-input-siteId" placeholder="Site ID" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-timeUnit"> Interval </label>
+    <select value="" id="node-input-timeUnit" placeholder="choose">
+      <option value="4">daily</option>
+      <option value="5">weekly</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-timeZoneSettings"> Time Zone Settings </label>
+    <select value="" id="node-input-timeZoneSettings" placeholder="choose">
+      <option value="UTC">UTC</option>
+      <option value="Local">Local</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-collectAdditionalInfo">
+      Collect additional info
+    </label>
+    <input type="checkbox" id="node-input-collectAdditionalInfo" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-formatForInfluxDb"> Format for InfluxDB </label>
+    <input type="checkbox" id="node-input-formatForInfluxDb" />
+  </div>
+  <div class="form-row" id="influxDbMeasurement-form-row" class="fa fa-tag">
+    <label for="node-input-influxDbMeasurement"> InfluxDB Measurement </label>
+    <input
+      type="text"
+      id="node-input-influxDbMeasurement"
+      placeholder="Measurement"
+    />
+  </div>
+
+  <div class="form-row">
+    <label>Auswahl</label>
+    <div id="node-input-options-container" style="margin-left: 105px;"></div>
+  </div>
+  <input type="hidden" id="node-input-selectedItemTypes" />
+</script>
+
+<script type="text/html" data-help-name="solaredge-diagram-data-scraper">
+  <p>Scrapes optimizer power data from solaredge cloud</p>
+</script>
