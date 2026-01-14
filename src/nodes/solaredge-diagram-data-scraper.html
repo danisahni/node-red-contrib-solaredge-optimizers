@@ -10,9 +10,7 @@
           return value.length > 0;
         },
       },
-      timeUnit: { value: 4 },
       timeZoneSettings: { value: "UTC" },
-      collectAdditionalInfo: { value: true },
       formatForInfluxDb: { value: true },
       influxDbMeasurement: {
         value: "optimizers",
@@ -21,6 +19,13 @@
         },
       },
       selectedItemTypes: { value: [] },
+      selectedSiteParameters: { value: [] },
+      selectedInverterParameters: { value: [] },
+      selectedStringParameters: { value: [] },
+      selectedOptimizerParameters: { value: [] },
+      selectedMeterParameters: { value: [] },
+      selectedBatteryParameters: { value: [] },
+      selectedWeatherParameters: { value: [] },
     },
     credentials: {
       username: { type: "text" },
@@ -33,6 +38,8 @@
       return this.name || "solaredge-diagram-data-scraper";
     },
     oneditprepare: function () {
+      const self = this;
+
       $("#node-input-formatForInfluxDb").change(function () {
         if ($("#node-input-formatForInfluxDb").is(":checked")) {
           $("#influxDbMeasurement-form-row").show();
@@ -40,42 +47,193 @@
           $("#influxDbMeasurement-form-row").hide();
         }
       });
-      var defs = window.SOLAREDGE_ENUMS || {};
-      const itemTypes = defs.ITEM_TYPES || [];
-      const selectedItemTypes = Array.isArray(this.selectedItemTypes)
-        ? this.selectedItemTypes
-        : [];
-      const $container = $("#node-input-item-types-container");
-      $container.empty();
 
-      itemTypes.forEach((itemType) => {
-        const checkboxId = `node-input-item-type-${itemType}`;
+      // Initialize parameter tabs
+      $("#param-tabs-content").children().hide();
 
-        const $row = $(`
-          <div class="nr-checkbox-row" style="margin: 4px 0;">
-            <label for="${checkboxId}" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-              <input type="checkbox" id="${checkboxId}" data-id="${itemType}" />
-              <span>${itemType}</span>
-            </label>
-          </div>
-        `);
-
-        // initial check-state
-        $row
-          .find("input[type=checkbox]")
-          .prop("checked", selectedItemTypes.includes(itemType));
-
-        $container.append($row);
+      const tabs = RED.tabs.create({
+        id: "param-tabs",
+        onchange: function (tab) {
+          $("#param-tabs-content").children().hide();
+          $("#" + tab.id).show();
+        },
       });
+
+      // Reusable function to create checkboxes for a parameter type
+      function createCheckboxes(
+        enumKey,
+        containerSelector,
+        selectedKey,
+        idPrefix
+      ) {
+        const defs = window.SOLAREDGE_ENUMS || {};
+        const items = defs[enumKey] || [];
+        const selectedItems = Array.isArray(self[selectedKey])
+          ? self[selectedKey]
+          : [];
+        const $container = $(containerSelector);
+        $container.empty();
+
+        items.forEach((item) => {
+          const checkboxId = `${idPrefix}-${item}`;
+          const $row = $(`
+            <div style="margin: 2px 0;">
+              <label style="display: inline-block; width: auto;">
+                <input type="checkbox" id="${checkboxId}" data-id="${item}" style="width: auto; margin-right: 5px;" />
+                ${item}
+              </label>
+            </div>
+          `);
+
+          $row
+            .find("input[type=checkbox]")
+            .prop("checked", selectedItems.includes(item));
+          $container.append($row);
+        });
+      }
+
+      // Function to update visible tabs based on selected ItemTypes
+      function updateVisibleTabs() {
+        const selectedTypes = $(
+          "#node-input-item-types-container input[type=checkbox]:checked"
+        )
+          .map(function () {
+            return $(this).data("id");
+          })
+          .get();
+
+        // Remove all existing tabs
+        $("#param-tabs").empty();
+
+        // Hide the entire parameter section if no types selected
+        if (selectedTypes.length === 0) {
+          $("#param-tabs-content").hide();
+          $("#param-tabs").parent().hide();
+          $("label:contains('Parameters')").parent().hide();
+          return;
+        } else {
+          $("#param-tabs-content").show();
+          $("#param-tabs").parent().show();
+          $("label:contains('Parameters')").parent().show();
+        }
+
+        // Hide all tab content
+        $("#param-tabs-content").children().hide();
+
+        let firstTabId = null;
+        // Add tabs for selected ItemTypes
+        selectedTypes.forEach(function (itemType) {
+          const tabId = `param-tab-${itemType.toLowerCase()}`;
+          if (tabId) {
+            const label = itemType;
+            tabs.addTab({ id: tabId, label: label });
+            if (!firstTabId) firstTabId = tabId;
+          }
+        });
+
+        // Show first available tab
+        if (firstTabId) {
+          $("#" + firstTabId).show();
+        }
+      }
+
+      // Create checkboxes for all parameter types
+      createCheckboxes(
+        "ITEM_TYPES",
+        "#node-input-item-types-container",
+        "selectedItemTypes",
+        "node-input-item-type"
+      );
+
+      // Add change handler to ItemTypes checkboxes
+      $("#node-input-item-types-container").on(
+        "change",
+        "input[type=checkbox]",
+        function () {
+          updateVisibleTabs();
+        }
+      );
+
+      createCheckboxes(
+        "SITE_PARAMETERS",
+        "#node-input-site-parameters-container",
+        "selectedSiteParameters",
+        "node-input-site-parameter"
+      );
+      createCheckboxes(
+        "INVERTER_PARAMETERS",
+        "#node-input-inverter-parameters-container",
+        "selectedInverterParameters",
+        "node-input-inverter-parameter"
+      );
+      createCheckboxes(
+        "STRING_PARAMETERS",
+        "#node-input-string-parameters-container",
+        "selectedStringParameters",
+        "node-input-string-parameter"
+      );
+      createCheckboxes(
+        "OPTIMIZER_PARAMETERS",
+        "#node-input-optimizer-parameters-container",
+        "selectedOptimizerParameters",
+        "node-input-optimizer-parameter"
+      );
+      createCheckboxes(
+        "METER_PARAMETERS",
+        "#node-input-meter-parameters-container",
+        "selectedMeterParameters",
+        "node-input-meter-parameter"
+      );
+      createCheckboxes(
+        "BATTERY_PARAMETERS",
+        "#node-input-battery-parameters-container",
+        "selectedBatteryParameters",
+        "node-input-battery-parameter"
+      );
+      createCheckboxes(
+        "WEATHER_PARAMETERS",
+        "#node-input-weather-parameters-container",
+        "selectedWeatherParameters",
+        "node-input-weather-parameter"
+      );
+
+      // Initialize visible tabs based on selected ItemTypes
+      updateVisibleTabs();
     },
     oneditsave: function () {
-      this.selectedItemTypes = $(
-        "#node-input-item-types-container input[type=checkbox]:checked"
-      )
-        .map(function () {
-          return $(this).data("id");
-        })
-        .get();
+      // Reusable function to save selected checkboxes
+      function saveSelectedCheckboxes(containerSelector) {
+        return $(containerSelector + " input[type=checkbox]:checked")
+          .map(function () {
+            return $(this).data("id");
+          })
+          .get();
+      }
+
+      this.selectedItemTypes = saveSelectedCheckboxes(
+        "#node-input-item-types-container"
+      );
+      this.selectedSiteParameters = saveSelectedCheckboxes(
+        "#node-input-site-parameters-container"
+      );
+      this.selectedInverterParameters = saveSelectedCheckboxes(
+        "#node-input-inverter-parameters-container"
+      );
+      this.selectedStringParameters = saveSelectedCheckboxes(
+        "#node-input-string-parameters-container"
+      );
+      this.selectedOptimizerParameters = saveSelectedCheckboxes(
+        "#node-input-optimizer-parameters-container"
+      );
+      this.selectedMeterParameters = saveSelectedCheckboxes(
+        "#node-input-meter-parameters-container"
+      );
+      this.selectedBatteryParameters = saveSelectedCheckboxes(
+        "#node-input-battery-parameters-container"
+      );
+      this.selectedWeatherParameters = saveSelectedCheckboxes(
+        "#node-input-weather-parameters-container"
+      );
     },
   });
 </script>
@@ -93,25 +251,15 @@
     <label for="node-input-siteId"><i class="fa fa-tag"></i> Site ID</label>
     <input type="text" id="node-input-siteId" placeholder="Site ID" />
   </div>
-  <div class="form-row">
-    <label for="node-input-timeUnit"> Interval </label>
-    <select value="" id="node-input-timeUnit" placeholder="choose">
-      <option value="4">daily</option>
-      <option value="5">weekly</option>
-    </select>
-  </div>
+
+  <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
+
   <div class="form-row">
     <label for="node-input-timeZoneSettings"> Time Zone Settings </label>
     <select value="" id="node-input-timeZoneSettings" placeholder="choose">
       <option value="UTC">UTC</option>
       <option value="Local">Local</option>
     </select>
-  </div>
-  <div class="form-row">
-    <label for="node-input-collectAdditionalInfo">
-      Collect additional info
-    </label>
-    <input type="checkbox" id="node-input-collectAdditionalInfo" />
   </div>
   <div class="form-row">
     <label for="node-input-formatForInfluxDb"> Format for InfluxDB </label>
@@ -126,9 +274,47 @@
     />
   </div>
 
+  <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
+
   <div class="form-row">
     <label>Types</label>
     <div id="node-input-item-types-container" style="margin-left: 105px;"></div>
+  </div>
+
+  <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
+
+  <div class="form-row">
+    <label style="width: 100%; margin-bottom: 10px;">Parameters</label>
+  </div>
+  <div class="form-row">
+    <ul style="min-width: 600px; margin-bottom: 20px;" id="param-tabs"></ul>
+  </div>
+
+  <div
+    id="param-tabs-content"
+    style="min-height: 200px; border: 1px solid #ddd; padding: 10px; margin-bottom: 20px;"
+  >
+    <div id="param-tab-site" style="display:none">
+      <div id="node-input-site-parameters-container"></div>
+    </div>
+    <div id="param-tab-inverter" style="display:none">
+      <div id="node-input-inverter-parameters-container"></div>
+    </div>
+    <div id="param-tab-string" style="display:none">
+      <div id="node-input-string-parameters-container"></div>
+    </div>
+    <div id="param-tab-optimizer" style="display:none">
+      <div id="node-input-optimizer-parameters-container"></div>
+    </div>
+    <div id="param-tab-meter" style="display:none">
+      <div id="node-input-meter-parameters-container"></div>
+    </div>
+    <div id="param-tab-battery" style="display:none">
+      <div id="node-input-battery-parameters-container"></div>
+    </div>
+    <div id="param-tab-weather" style="display:none">
+      <div id="node-input-weather-parameters-container"></div>
+    </div>
   </div>
 </script>
 
