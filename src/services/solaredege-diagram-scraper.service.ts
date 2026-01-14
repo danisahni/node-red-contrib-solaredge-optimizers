@@ -29,19 +29,13 @@ export class SolarEdgeDiagramScraper {
     const jar = new CookieJar();
     this.api = wrapper(axios.create({ jar }));
 
-    // Set default Basic Auth for all requests
-    // this.api.defaults.auth = {
-    //   username: this.username,
-    //   password: this.password,
-    // };
-
     // Set default headers
     this.api.defaults.headers.common["User-Agent"] =
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36";
     this.api.defaults.headers.common["Accept"] = "application/json";
   }
 
-  async login() {
+  async login(): Promise<void> {
     try {
       const url = "https://monitoring.solaredge.com/solaredge-apigw/api/login";
       const params = new URLSearchParams();
@@ -52,65 +46,19 @@ export class SolarEdgeDiagramScraper {
           "Content-Type": "application/x-www-form-urlencoded",
         },
       });
-
       if (response.status !== 200) {
         throw new Error("Login failed: HTTP " + response.status);
       }
 
       this.x_csrf_token = response.headers["x-csrf-token"];
 
-      const cookies = await this.api.defaults.jar?.getCookies(
-        "https://monitoring.solaredge.com"
-      );
-      const cookieData = cookies?.map((c: any) => c.toJSON());
-      return cookieData;
+      await this.bootstrapSession();
     } catch (error: any) {
       throw new Error(`login fehlgeschlagen: ${error.message}`);
     }
   }
 
-  async login2(): Promise<void> {
-    let x_csrf_token = undefined;
-    try {
-      const params = new URLSearchParams();
-      params.append("j_username", this.username);
-      params.append("j_password", this.password);
-      const url = "https://monitoring.solaredge.com/solaredge-apigw/api/login";
-      let response = await this.api.post(url, params, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      });
-      x_csrf_token = response.headers["x-csrf-token"];
-      console.log(x_csrf_token);
-      // Store CSRF token and set as default header for future requests
-      if (x_csrf_token) {
-        this.api.defaults.headers.common["X-CSRF-TOKEN"] = x_csrf_token;
-      }
-
-      // Debug: Check what cookies are stored in CookieJar after login
-      const jar = (this.api.defaults as any).jar;
-      if (jar) {
-        const cookies = await jar.getCookies(
-          "https://monitoring.solaredge.com"
-        );
-        console.log("🍪 Cookies stored after login:");
-        cookies.forEach((cookie: any, index: number) => {
-          console.log(`  ${index + 1}. ${cookie.key}=${cookie.value}`);
-          console.log(
-            `     Path: ${cookie.path}, Domain: ${cookie.domain}, Secure: ${cookie.secure}`
-          );
-        });
-        console.log(`Total cookies: ${cookies.length}`);
-      } else {
-        console.log("❌ No CookieJar found");
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  async bootstrapSession(): Promise<Cookie[] | undefined> {
+  private async bootstrapSession(): Promise<void> {
     try {
       await this.api.get(
         `https://monitoring.solaredge.com/solaredge-web/p/chartParamsList?fieldId=${this.siteId}`,
@@ -120,11 +68,6 @@ export class SolarEdgeDiagramScraper {
           },
         }
       );
-      const cookies = await this.api.defaults.jar?.getCookies(
-        "https://monitoring.solaredge.com"
-      );
-
-      return cookies;
     } catch (error: any) {
       throw new Error(`bootstrapSession fehlgeschlagen: ${error.message}`);
     }
