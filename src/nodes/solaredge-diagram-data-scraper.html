@@ -74,6 +74,13 @@
         const $container = $(containerSelector);
         $container.empty();
 
+        // Add grid layout style to container
+        $container.css({
+          display: "grid",
+          "grid-template-columns": "1fr 1fr",
+          gap: "5px",
+        });
+
         items.forEach((item) => {
           const checkboxId = `${idPrefix}-${item}`;
           const $row = $(`
