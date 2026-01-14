@@ -1,7 +1,9 @@
+import { ItemType } from "./parameters";
+
 export interface ItemId {
-  itemType: string;
-  id?: string;
-  identifier?: string;
+  itemType: ItemType;
+  id: string;
+  identifier: string;
   originalSerial?: string;
   connectedToInverter?: string;
 }

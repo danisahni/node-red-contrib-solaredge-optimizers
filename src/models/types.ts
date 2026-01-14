@@ -1,4 +1,14 @@
 import { Node, NodeDef } from "node-red";
+import {
+  BatteryParameter,
+  InverterParameter,
+  ItemType,
+  WeatherParameter,
+  MeterParameter,
+  OptimizerParameter,
+  SiteParameter,
+  StringParameter,
+} from "../services/solaredge-diagram-scraper-service/models/parameters";
 
 export interface SolaredgeOptimizersConfig extends NodeDef {
   siteId: string;
@@ -16,7 +26,14 @@ export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
-  selectedItemTypes?: { [key: string]: boolean };
+  selectedItemTypes?: ItemType[];
+  selectedSiteParameters?: SiteParameter[];
+  selectedInverterParameters?: InverterParameter[];
+  selectedStringParameters?: StringParameter[];
+  selectedOptimizerParameters?: OptimizerParameter[];
+  selectedMeterParameters?: MeterParameter[];
+  selectedBatteryParameters?: BatteryParameter[];
+  selectedMeteorologicalParameters?: WeatherParameter[];
 }
 
 export interface SolaredgeOptimizersNode extends Node {
@@ -35,8 +52,7 @@ export interface SolarEdgeDiagramDataScraperNode extends Node {
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
-  selectedItemTypes: { [key: string]: boolean };
-  itemTypes: string[];
+  selectedItemTypes: ItemType[];
 }
 
 export interface OptimizerDataPoint {

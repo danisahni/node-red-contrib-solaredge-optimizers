@@ -2,6 +2,9 @@ import { NodeAPI, NodeMessage, NodeMessageInFlow, Node } from "node-red";
 import { SolarEdgeDiagramDataScraperConfig } from "../models/types";
 import { SolaredgeApiService } from "../services/solaredge-api.service";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
+import { SolarEdgeDiagramScraperService } from "../services/solaredge-diagram-scraper-service/solaredege-diagram-scraper-service";
+import { AnyParameter, ItemType, MeasurementRequestData } from "../models";
+import { Measurements } from "../services/solaredge-diagram-scraper-service/models/measurements";
 
 module.exports = function (RED: NodeAPI) {
   function SolaredgeDiagramDataScraperNode(
@@ -16,8 +19,15 @@ module.exports = function (RED: NodeAPI) {
     this.collectAdditionalInfo = config.collectAdditionalInfo;
     this.formatForInfluxDb = config.formatForInfluxDb;
     this.influxDbMeasurement = config.influxDbMeasurement;
-    this.selectedItemTypes = config.selectedItemTypes || {};
-
+    this.selectedItemTypes = config.selectedItemTypes || [];
+    this.selectedSiteParameters = config.selectedSiteParameters || [];
+    this.selectedInverterParameters = config.selectedInverterParameters || [];
+    this.selectedStringParameters = config.selectedStringParameters || [];
+    this.selectedOptimizerParameters = config.selectedOptimizerParameters || [];
+    this.selectedMeterParameters = config.selectedMeterParameters || [];
+    this.selectedBatteryParameters = config.selectedBatteryParameters || [];
+    this.selectedMeteorologicalParameters =
+      config.selectedMeteorologicalParameters || [];
     const node = this;
 
     node.on(
@@ -28,48 +38,47 @@ module.exports = function (RED: NodeAPI) {
         done: (err?: Error) => void
       ) {
         try {
-          const apiService = new SolaredgeApiService();
+          // const scraper = new SolarEdgeDiagramScraperService(
+          //   node.siteId,
+          //   node.credentials.username,
+          //   node.credentials.password
+          // );
+          // await scraper.login();
+          // const tree = await scraper.getTree();
+          // const measurements: Measurements = [];
+          // node.selectedItemTypes.forEach(async (type: ItemType) => {
+          //   const siteNodes = scraper.extractSiteNodesByItemType(
+          //     type,
+          //     tree.siteStructure
+          //   );
+          //   const measurementTypes: {
+          //     key: ItemType;
+          //     parameters: AnyParameter[];
+          //   }[] = [
+          //     {
+          //       key: "OPTIMIZER",
+          //       parameters: ["PRODUCTION_POWER", "PRODUCTION_ENERGY"],
+          //     },
+          //   ];
+          //   const requestedMeasurements: MeasurementRequestData =
+          //     scraper.createMeasurementRequestData(siteNodes, measurementTypes);
+          //   console.log(requestedMeasurements);
+          //   const data = await scraper.getMeasurements(requestedMeasurements);
+          //   measurements.push(...data);
+          // });
 
-          // Authenticate with SolarEdge API
-          await apiService.login({
-            username: node.credentials.username,
-            password: node.credentials.password,
-          });
-
-          // Fetch optimizer data
-          let data = await apiService.getData(
-            node.siteId,
-            node.timeUnit,
-            node.timeZoneSettings
-          );
-
-          // Collect additional information if requested
-          if (node.collectAdditionalInfo) {
-            const reporterIds = data.map((x) => x.reporterId);
-            const tags = await apiService.getTags(node.siteId, reporterIds);
-
-            data = data.map((x) => {
-              const currentTags = tags.find(
-                (y) => y.reporterId === x.reporterId
-              );
-              if (currentTags) {
-                Object.assign(x, currentTags);
-              }
-              return x;
-            });
-          }
-
-          // Format for InfluxDB if requested
-          if (node.formatForInfluxDb) {
-            const influxData = InfluxDbUtils.convertToInflux(
-              data,
-              node.influxDbMeasurement
-            );
-            msg.payload = influxData;
-          } else {
-            msg.payload = data;
-          }
-
+          msg.payload = {
+            selectedItemTypes: node.selectedItemTypes,
+            selectedSiteParameters: node.selectedSiteParameters,
+            selectedInverterParameters: node.selectedInverterParameters,
+            selectedStringParameters: node.selectedStringParameters,
+            selectedOptimizerParameters: node.selectedOptimizerParameters,
+            selectedMeterParameters: node.selectedMeterParameters,
+            selectedBatteryParameters: node.selectedBatteryParameters,
+            selectedMeteorologicalParameters:
+              node.selectedMeteorologicalParameters,
+            // measurements: measurements,
+          };
           node.status({ fill: "green", shape: "dot", text: "Success" });
         } catch (error) {
           const errorMessage =

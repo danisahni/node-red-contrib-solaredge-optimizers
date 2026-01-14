@@ -6,14 +6,16 @@ import { wrapper } from "axios-cookiejar-support";
 import { Cookie, CookieJar } from "tough-cookie";
 import fs from "fs";
 import {
-  ItemId,
+  AnyParameter,
   ItemType,
+  MeasurementRequest,
   MeasurementRequestData,
   SiteNode,
   SolarEdgeResponse,
-} from "../models";
+} from "../../models";
+import { Measurements } from "./models/measurements";
 
-export class SolarEdgeDiagramScraper {
+export class SolarEdgeDiagramScraperService {
   private siteId: string;
   private username: string;
   private password: string;
@@ -73,26 +75,6 @@ export class SolarEdgeDiagramScraper {
     }
   }
 
-  async getMeasurements(
-    requestedMeasurementsJSON: MeasurementRequestData
-    // startDate: string,
-    // endDate: string
-  ) {
-    try {
-      const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/devices-measurements?start-date=2026-01-02&end-date=2026-01-02`;
-      const response = await this.api.post(url, requestedMeasurementsJSON, {
-        headers: {
-          "Content-Type": "application/json",
-          // "X-CSRF-TOKEN": this.x_csrf_token,
-          "User-Agent": "PostmanRuntime/7.51.0",
-        },
-      });
-      return response.data;
-    } catch (error: any) {
-      throw new Error(`getMeasurements fehlgeschlagen: ${error.message}`);
-    }
-  }
-
   async getTree(): Promise<SolarEdgeResponse> {
     const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/tree`;
     const response = await this.api.get(url, {
@@ -106,11 +88,10 @@ export class SolarEdgeDiagramScraper {
         "X-XSRF-TOKEN": this.api.defaults.headers.common["X-CSRF-TOKEN"],
       },
     });
-    console.log("response.data", response.data);
 
-    // Speichere response.data in eine JSON-Datei
-    fs.writeFileSync("response.json", JSON.stringify(response.data, null, 2));
-    console.log("Response data saved to response.json");
+    // // Speichere response.data in eine JSON-Datei
+    // fs.writeFileSync("response.json", JSON.stringify(response.data, null, 2));
+    // console.log("Response data saved to response.json");
 
     return response.data as SolarEdgeResponse;
   }
@@ -130,14 +111,64 @@ export class SolarEdgeDiagramScraper {
     return result;
   }
 
-  async getDiagramData(): Promise<void> {
-    const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/devices-measurements?start-date=2026-01-02&end-date=2026-01-02`;
-    const data = {};
-    const headers = {
-      "Content-Type": "application/json",
-      "X-CSRF-TOKEN": this.api.defaults.headers.common["X-CSRF-TOKEN"],
-    };
-    const response = await this.api.post(url, data);
-    console.log(response);
+  createMeasurementRequestData(
+    siteNodes: SiteNode[],
+    measurementTypes: { key: ItemType; parameters: AnyParameter[] }[]
+  ): MeasurementRequestData {
+    const data: MeasurementRequestData = [];
+    siteNodes.forEach((node) => {
+      const index = measurementTypes.findIndex(
+        (mt) => mt.key === node.itemId.itemType
+      );
+      let currentMeasurementTypes: AnyParameter[] = [];
+      if (index !== -1) {
+        currentMeasurementTypes = measurementTypes[index].parameters;
+      }
+      const request: MeasurementRequest = {
+        device: {
+          itemType: node.itemId.itemType,
+          id: node.itemId.id,
+        },
+        deviceName: node.name || "",
+        measurementTypes: currentMeasurementTypes,
+      };
+      data.push(request);
+    });
+    return data;
+  }
+  async getMeasurements(
+    requestedMeasurements: MeasurementRequestData,
+    startDate?: string,
+    endDate?: string
+  ) {
+    try {
+      if (!startDate && !endDate) {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        endDate = today.toISOString().slice(0, 10);
+        startDate = yesterday.toISOString().slice(0, 10);
+      } else if (!startDate) {
+        startDate = endDate;
+      } else {
+        endDate = startDate;
+      }
+      const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/devices-measurements?start-date=${startDate}&end-date=${endDate}`;
+      const response = await this.api.post(url, requestedMeasurements, {
+        headers: {
+          "Content-Type": "application/json",
+          // "X-CSRF-TOKEN": this.x_csrf_token,
+          "User-Agent": "PostmanRuntime/7.51.0",
+        },
+      });
+      fs.writeFileSync(
+        "measurements.json",
+        JSON.stringify(response.data, null, 2)
+      );
+      console.log("Measurements data saved to measurements.json");
+      return response.data as Measurements;
+    } catch (error: any) {
+      throw new Error(`getMeasurements failed: ${error.message}`);
+    }
   }
 }
