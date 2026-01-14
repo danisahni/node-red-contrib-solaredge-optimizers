@@ -14,7 +14,6 @@ module.exports = function (RED: NodeAPI) {
     RED.nodes.createNode(this, config);
 
     this.siteId = config.siteId;
-    this.timeUnit = config.timeUnit;
     this.timeZoneSettings = config.timeZoneSettings;
     this.collectAdditionalInfo = config.collectAdditionalInfo;
     this.formatForInfluxDb = config.formatForInfluxDb;

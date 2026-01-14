@@ -44,18 +44,7 @@ module.exports = function (RED: NodeAPI) {
 
           // Collect additional information if requested
           if (node.collectAdditionalInfo) {
-            const reporterIds = data.map((x) => x.reporterId);
-            const tags = await apiService.getTags(node.siteId, reporterIds);
-
-            data = data.map((x) => {
-              const currentTags = tags.find(
-                (y) => y.reporterId === x.reporterId
-              );
-              if (currentTags) {
-                Object.assign(x, currentTags);
-              }
-              return x;
-            });
+            data = await apiService.addAdditionalInfo(data);
           }
 
           // Format for InfluxDB if requested

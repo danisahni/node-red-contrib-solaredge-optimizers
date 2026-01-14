@@ -5,7 +5,6 @@ import {
   OptimizerData,
   OptimizerTag,
   SolarEdgeApiResponse,
-  LoginCredentials,
   TimeUnit,
   TimeZoneSettings,
 } from "../models/types";
@@ -58,7 +57,7 @@ export class SolarEdgeApiService {
   }
 
   async getData(
-    timeUnit: TimeUnit,
+    timeUnit: "4" | "5",
     timeZoneSettings: TimeZoneSettings
   ): Promise<OptimizerData[]> {
     if (!this.x_csrf_token) {
@@ -83,10 +82,7 @@ export class SolarEdgeApiService {
     }
   }
 
-  async getTags(
-    siteId: string,
-    reporterIds: string[]
-  ): Promise<OptimizerTag[]> {
+  async getTags(reporterIds: string[]): Promise<OptimizerTag[]> {
     if (!this.x_csrf_token) {
       throw new Error("Not authenticated. Please login first.");
     }
@@ -96,7 +92,7 @@ export class SolarEdgeApiService {
     await Promise.all(
       reporterIds.map(async (id) => {
         const params = new URLSearchParams();
-        params.append("fieldId", siteId);
+        params.append("fieldId", this.siteId);
         params.append("reporterId", id);
         params.append("type", "any");
         params.append("activeTab", "0");
@@ -180,5 +176,18 @@ export class SolarEdgeApiService {
     }
 
     return data;
+  }
+  async addAdditionalInfo(data: OptimizerData[]): Promise<OptimizerData[]> {
+    const reporterIds = data.map((x) => x.reporterId);
+    const tags = await this.getTags(reporterIds);
+
+    const updatedData = data.map((x) => {
+      const currentTags = tags.find((y) => y.reporterId === x.reporterId);
+      if (currentTags) {
+        Object.assign(x, currentTags);
+      }
+      return x;
+    });
+    return updatedData;
   }
 }

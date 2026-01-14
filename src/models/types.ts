@@ -12,7 +12,7 @@ import {
 
 export interface SolarEdgeOptimizersConfig extends NodeDef {
   siteId: string;
-  timeUnit: string;
+  timeUnit: "4" | "5";
   timeZoneSettings: "Local" | "GMT";
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
@@ -21,7 +21,6 @@ export interface SolarEdgeOptimizersConfig extends NodeDef {
 
 export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
   siteId: string;
-  timeUnit: string;
   timeZoneSettings: "Local" | "GMT";
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
@@ -97,11 +96,6 @@ export interface SolarEdgeApiResponse {
   };
 }
 
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
 export type TimeUnit =
   | "QUARTER_OF_AN_HOUR"
   | "HOUR"
@@ -109,4 +103,5 @@ export type TimeUnit =
   | "WEEK"
   | "MONTH"
   | "YEAR";
-export type TimeZoneSettings = "Local" | "GMT";
+
+export type TimeZoneSettings = "Local" | "UTC";
