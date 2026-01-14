@@ -45,11 +45,8 @@
       const selectedItemTypes = Array.isArray(this.selectedItemTypes)
         ? this.selectedItemTypes
         : [];
-      const $container = $("#node-input-options-container");
+      const $container = $("#node-input-item-types-container");
       $container.empty();
-
-      // hidden input mit initialem Wert füllen (als JSON string)
-      $("#node-input-selectedItemTypes").val(JSON.stringify(selectedItemTypes));
 
       itemTypes.forEach((itemType) => {
         const checkboxId = `node-input-item-type-${itemType}`;
@@ -72,20 +69,13 @@
       });
     },
     oneditsave: function () {
-      // final einsammeln beim Speichern
-      const chosen = $(
-        "#node-input-options-container input[type=checkbox]:checked"
+      this.selectedItemTypes = $(
+        "#node-input-item-types-container input[type=checkbox]:checked"
       )
         .map(function () {
           return $(this).data("id");
         })
         .get();
-
-      // Node-RED Property setzen (wird gespeichert)
-      this.selectedItemTypes = chosen;
-
-      // hidden input konsistent halten (optional)
-      $("#node-input-selectedItemTypes").val(JSON.stringify(chosen));
     },
   });
 </script>
@@ -137,10 +127,9 @@
   </div>
 
   <div class="form-row">
-    <label>Auswahl</label>
-    <div id="node-input-options-container" style="margin-left: 105px;"></div>
+    <label>Types</label>
+    <div id="node-input-item-types-container" style="margin-left: 105px;"></div>
   </div>
-  <input type="hidden" id="node-input-selectedItemTypes" />
 </script>
 
 <script type="text/html" data-help-name="solaredge-diagram-data-scraper">
