@@ -10,7 +10,7 @@ import {
   StringParameter,
 } from "../services/solaredge-diagram-scraper-service/models/parameters";
 
-export interface SolaredgeOptimizersConfig extends NodeDef {
+export interface SolarEdgeOptimizersConfig extends NodeDef {
   siteId: string;
   timeUnit: string;
   timeZoneSettings: "Local" | "GMT";
@@ -36,7 +36,7 @@ export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
   selectedMeteorologicalParameters?: WeatherParameter[];
 }
 
-export interface SolaredgeOptimizersNode extends Node {
+export interface SolarEdgeOptimizersNode extends Node {
   siteId: string;
   timeUnit: string;
   timeZoneSettings: "Local" | "GMT";
@@ -86,7 +86,7 @@ export interface InfluxDbEntry {
   timestamp: number;
 }
 
-export interface SolaredgeApiResponse {
+export interface SolarEdgeApiResponse {
   reportersData: {
     [dateString: string]: {
       [sid: string]: Array<{

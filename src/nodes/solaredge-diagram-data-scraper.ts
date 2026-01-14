@@ -1,13 +1,13 @@
 import { NodeAPI, NodeMessage, NodeMessageInFlow, Node } from "node-red";
 import { SolarEdgeDiagramDataScraperConfig } from "../models/types";
-import { SolaredgeApiService } from "../services/solaredge-api.service";
+import { SolarEdgeApiService } from "../services/solaredge-api.service";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
 import { SolarEdgeDiagramScraperService } from "../services/solaredge-diagram-scraper-service/solaredege-diagram-scraper-service";
 import { AnyParameter, ItemType, MeasurementRequestData } from "../models";
 import { Measurements } from "../services/solaredge-diagram-scraper-service/models/measurements";
 
 module.exports = function (RED: NodeAPI) {
-  function SolaredgeDiagramDataScraperNode(
+  function SolarEdgeDiagramDataScraperNode(
     this: any,
     config: SolarEdgeDiagramDataScraperConfig
   ) {
@@ -96,7 +96,7 @@ module.exports = function (RED: NodeAPI) {
 
   RED.nodes.registerType(
     "solaredge-diagram-data-scraper",
-    SolaredgeDiagramDataScraperNode,
+    SolarEdgeDiagramDataScraperNode,
     {
       credentials: {
         username: { type: "text" },

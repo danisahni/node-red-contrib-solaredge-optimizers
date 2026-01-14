@@ -4,7 +4,7 @@ import { CookieJar } from "tough-cookie";
 import {
   OptimizerData,
   OptimizerTag,
-  SolaredgeApiResponse,
+  SolarEdgeApiResponse,
   LoginCredentials,
   TimeUnit,
   TimeZoneSettings,
@@ -16,7 +16,7 @@ const DATA_URL =
 const DETAILS_URL =
   "https://monitoring.solaredge.com/solaredge-web/p/systemData";
 
-export class SolaredgeApiService {
+export class SolarEdgeApiService {
   private client: AxiosInstance;
   private csrfToken?: string;
 
@@ -144,7 +144,7 @@ export class SolaredgeApiService {
       .replaceAll("fieldData", '"fieldData"')
       .replaceAll("reportersData", '"reportersData"');
 
-    const jsonData: SolaredgeApiResponse = JSON.parse(text);
+    const jsonData: SolarEdgeApiResponse = JSON.parse(text);
     const data: OptimizerData[] = [];
     const regex = /GMT([+-]\d{4})/;
     const localGMT = new Date().toString().match(regex)?.[0] || "GMT+0000";

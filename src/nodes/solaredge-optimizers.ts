@@ -1,12 +1,12 @@
 import { NodeAPI, NodeMessage, NodeMessageInFlow, Node } from "node-red";
-import { SolaredgeOptimizersConfig } from "../models/types";
-import { SolaredgeApiService } from "../services/solaredge-api.service";
+import { SolarEdgeOptimizersConfig } from "../models/types";
+import { SolarEdgeApiService } from "../services/solaredge-api.service";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
 
 module.exports = function (RED: NodeAPI) {
-  function SolaredgeOptimizersNode(
+  function SolarEdgeOptimizersNode(
     this: any,
-    config: SolaredgeOptimizersConfig
+    config: SolarEdgeOptimizersConfig
   ) {
     RED.nodes.createNode(this, config);
 
@@ -27,7 +27,7 @@ module.exports = function (RED: NodeAPI) {
         done: (err?: Error) => void
       ) {
         try {
-          const apiService = new SolaredgeApiService();
+          const apiService = new SolarEdgeApiService();
 
           // Authenticate with SolarEdge API
           await apiService.login({
@@ -84,7 +84,7 @@ module.exports = function (RED: NodeAPI) {
     );
   }
 
-  RED.nodes.registerType("solaredge-optimizers", SolaredgeOptimizersNode, {
+  RED.nodes.registerType("solaredge-optimizers", SolarEdgeOptimizersNode, {
     credentials: {
       username: { type: "text" },
       password: { type: "password" },
