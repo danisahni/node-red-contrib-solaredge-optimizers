@@ -27,17 +27,17 @@ module.exports = function (RED: NodeAPI) {
         done: (err?: Error) => void
       ) {
         try {
-          const apiService = new SolarEdgeApiService();
+          const apiService = new SolarEdgeApiService(
+            node.siteId,
+            node.credentials.username,
+            node.credentials.password
+          );
 
           // Authenticate with SolarEdge API
-          await apiService.login({
-            username: node.credentials.username,
-            password: node.credentials.password,
-          });
+          await apiService.login();
 
           // Fetch optimizer data
           let data = await apiService.getData(
-            node.siteId,
             node.timeUnit,
             node.timeZoneSettings
           );

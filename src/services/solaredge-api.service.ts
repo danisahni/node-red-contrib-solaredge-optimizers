@@ -17,32 +17,40 @@ const DETAILS_URL =
   "https://monitoring.solaredge.com/solaredge-web/p/systemData";
 
 export class SolarEdgeApiService {
-  private client: AxiosInstance;
-  private csrfToken?: string;
+  private siteId: string;
+  private username: string;
+  private password: string;
+  private api: AxiosInstance;
+  private x_csrf_token: string | undefined;
 
-  constructor() {
-    this.client = this.createClientWithCookieJar();
-  }
+  constructor(siteId: string, username: string, password: string) {
+    this.siteId = siteId;
+    this.username = username;
+    this.password = password;
 
-  private createClientWithCookieJar(): AxiosInstance {
+    // Create axios instance with cookie jar support
     const jar = new CookieJar();
-    return wrapper(axios.create({ jar }));
+    this.api = wrapper(axios.create({ jar }));
+
+    // Set default headers
+    this.api.defaults.headers.common["User-Agent"] =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36";
+    this.api.defaults.headers.common["Accept"] = "application/json";
   }
 
-  async login(credentials: LoginCredentials): Promise<string | undefined> {
+  async login(): Promise<void> {
     try {
       const params = new URLSearchParams();
-      params.append("j_username", credentials.username);
-      params.append("j_password", credentials.password);
+      params.append("j_username", this.username);
+      params.append("j_password", this.password);
 
-      const response = await this.client.post(LOGIN_URL, params, {
+      const response = await this.api.post(LOGIN_URL, params, {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
       });
 
-      this.csrfToken = response.headers["x-csrf-token"];
-      return this.csrfToken;
+      this.x_csrf_token = response.headers["x-csrf-token"];
     } catch (error) {
       console.error("Login failed:", error);
       throw new Error("Failed to authenticate with SolarEdge API");
@@ -50,22 +58,21 @@ export class SolarEdgeApiService {
   }
 
   async getData(
-    siteId: string,
     timeUnit: TimeUnit,
     timeZoneSettings: TimeZoneSettings
   ): Promise<OptimizerData[]> {
-    if (!this.csrfToken) {
+    if (!this.x_csrf_token) {
       throw new Error("Not authenticated. Please login first.");
     }
 
     try {
       const params = new URLSearchParams();
-      params.append("fieldId", siteId);
+      params.append("fieldId", this.siteId);
       params.append("timeUnit", timeUnit);
 
-      const response = await this.client.post(DATA_URL, params, {
+      const response = await this.api.post(DATA_URL, params, {
         headers: {
-          "X-CSRF-TOKEN": this.csrfToken,
+          "X-CSRF-TOKEN": this.x_csrf_token,
         },
       });
 
@@ -80,7 +87,7 @@ export class SolarEdgeApiService {
     siteId: string,
     reporterIds: string[]
   ): Promise<OptimizerTag[]> {
-    if (!this.csrfToken) {
+    if (!this.x_csrf_token) {
       throw new Error("Not authenticated. Please login first.");
     }
 
@@ -96,9 +103,9 @@ export class SolarEdgeApiService {
         params.append("isPublic", "false");
 
         try {
-          const response = await this.client.post(DETAILS_URL, params, {
+          const response = await this.api.post(DETAILS_URL, params, {
             headers: {
-              "X-CSRF-TOKEN": this.csrfToken,
+              "X-CSRF-TOKEN": this.x_csrf_token,
             },
           });
 
