@@ -4,7 +4,6 @@ export const ITEM_TYPES = [
   "STRING",
   "OPTIMIZER",
   "METER",
-  "STORAGE",
   "BATTERY",
   "WEATHER",
 ] as const;
@@ -81,14 +80,13 @@ export const BATTERY_PARAMETERS = [
 
 export type BatteryParameter = (typeof BATTERY_PARAMETERS)[number];
 
-export const METEOROLOGICAL_PARAMETERS = [
+export const WEATHER_PARAMETERS = [
   "HUMIDITY",
   "TEMPERATURE",
   "WIND_SPEED",
 ] as const;
 
-export type MeteorologicalParameter =
-  (typeof METEOROLOGICAL_PARAMETERS)[number];
+export type WeatherParameter = (typeof WEATHER_PARAMETERS)[number];
 
 export type AnyParameter =
   | SiteParameter
@@ -97,4 +95,4 @@ export type AnyParameter =
   | OptimizerParameter
   | MeterParameter
   | BatteryParameter
-  | MeteorologicalParameter;
+  | WeatherParameter;
