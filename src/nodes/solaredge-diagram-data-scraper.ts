@@ -78,7 +78,7 @@ module.exports = function (RED: NodeAPI) {
             },
           ];
 
-          // create data for get measurements
+          // create measurement request data for all selected item types and parameters
           const measurementRequestData: MeasurementRequestData = [];
           node.selectedItemTypes.forEach(async (t: ItemType) => {
             const currentItems = scraper.extractItemsFromTreeByItemType(
@@ -91,19 +91,20 @@ module.exports = function (RED: NodeAPI) {
             );
             measurementRequestData.push(...currentRequestData);
           });
+          // get measurements
           const measurements: Measurements = await scraper.getMeasurements(
             measurementRequestData
           );
-          console.log(measurements.length);
+
+          if (node.timeZoneSettings === "UTC") {
+            measurements.forEach((m) => {
+              m.measurements.forEach((record) => {
+                record.time = new Date(record.time).toISOString();
+              });
+            });
+          }
 
           msg.payload = {
-            selectedItemTypes: node.selectedItemTypes,
-            selectedSiteParameters: node.selectedSiteParameters,
-            selectedInverterParameters: node.selectedInverterParameters,
-            selectedStringParameters: node.selectedStringParameters,
-            selectedOptimizerParameters: node.selectedOptimizerParameters,
-            selectedMeterParameters: node.selectedMeterParameters,
-            selectedBatteryParameters: node.selectedBatteryParameters,
             measurements: measurements,
           };
           node.status({ fill: "green", shape: "dot", text: "Success" });

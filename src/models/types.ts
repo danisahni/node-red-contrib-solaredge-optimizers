@@ -12,7 +12,7 @@ import {
 export interface SolarEdgeOptimizersConfig extends NodeDef {
   siteId: string;
   timeUnit: "4" | "5";
-  timeZoneSettings: "Local" | "GMT";
+  timeZoneSettings: "Local" | "UTC";
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
@@ -20,7 +20,7 @@ export interface SolarEdgeOptimizersConfig extends NodeDef {
 
 export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
   siteId: string;
-  timeZoneSettings: "Local" | "GMT";
+  timeZoneSettings: "Local" | "UTC";
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
@@ -36,7 +36,7 @@ export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
 export interface SolarEdgeOptimizersNode extends Node {
   siteId: string;
   timeUnit: string;
-  timeZoneSettings: "Local" | "GMT";
+  timeZoneSettings: "Local" | "UTC";
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
@@ -45,7 +45,7 @@ export interface SolarEdgeOptimizersNode extends Node {
 export interface SolarEdgeDiagramDataScraperNode extends Node {
   siteId: string;
   timeUnit: string;
-  timeZoneSettings: "Local" | "GMT";
+  timeZoneSettings: "Local" | "UTC";
   collectAdditionalInfo: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
