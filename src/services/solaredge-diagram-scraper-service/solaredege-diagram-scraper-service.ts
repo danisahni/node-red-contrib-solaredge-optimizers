@@ -11,7 +11,8 @@ import {
   MeasurementRequest,
   MeasurementRequestData,
   SiteNode,
-  SolarEdgeResponse,
+  SolarEdgeTree,
+  TreeItem,
 } from "../../models";
 import { Measurements } from "./models/measurements";
 
@@ -20,7 +21,6 @@ export class SolarEdgeDiagramScraperService {
   private username: string;
   private password: string;
   private api: AxiosInstance;
-  private x_csrf_token: string | undefined;
 
   constructor(siteid: string, username: string, password: string) {
     this.siteId = siteid;
@@ -43,57 +43,55 @@ export class SolarEdgeDiagramScraperService {
       const params = new URLSearchParams();
       params.append("j_username", this.username);
       params.append("j_password", this.password);
-      const response = await this.api.post(url, params, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      });
+      const response = await this.api.post(url, params);
       if (response.status !== 200) {
-        throw new Error("Login failed: HTTP " + response.status);
+        throw new Error(`Login failed: HTTP ${response.status} `);
       }
-
-      this.x_csrf_token = response.headers["x-csrf-token"];
-
       await this.bootstrapSession();
     } catch (error: any) {
-      throw new Error(`login fehlgeschlagen: ${error.message}`);
+      throw new Error(`Login failed: ${error.message}`);
     }
   }
 
   private async bootstrapSession(): Promise<void> {
     try {
-      await this.api.get(
-        `https://monitoring.solaredge.com/solaredge-web/p/chartParamsList?fieldId=${this.siteId}`,
-        {
-          headers: {
-            "X-CSRF-TOKEN": this.x_csrf_token,
-          },
-        }
-      );
+      const url = `https://monitoring.solaredge.com/solaredge-web/p/chartParamsList?fieldId=${this.siteId}`;
+      await this.api.get(url);
     } catch (error: any) {
-      throw new Error(`bootstrapSession fehlgeschlagen: ${error.message}`);
+      throw new Error(`bootstrapSession failed: ${error.message}`);
     }
   }
 
-  async getTree(): Promise<SolarEdgeResponse> {
+  async getTree(): Promise<SolarEdgeTree> {
     const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/tree`;
-    const response = await this.api.get(url, {
-      maxRedirects: 0,
-      validateStatus: () => true, // 401 wird NICHT als Exception geworfen
-      // responseType: "text", // Body als Text (auch wenn HTML/JSON)
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        Referer: "https://monitoring.solaredge.com/",
-        "X-CSRF-TOKEN": this.api.defaults.headers.common["X-CSRF-TOKEN"],
-        "X-XSRF-TOKEN": this.api.defaults.headers.common["X-CSRF-TOKEN"],
-      },
-    });
+    const response = await this.api.get(url);
+    return response.data as SolarEdgeTree;
+  }
 
-    // // Speichere response.data in eine JSON-Datei
-    // fs.writeFileSync("response.json", JSON.stringify(response.data, null, 2));
-    // console.log("Response data saved to response.json");
-
-    return response.data as SolarEdgeResponse;
+  extractItemsFromTreeByItemType(
+    itemType: ItemType,
+    tree: SolarEdgeTree
+  ): TreeItem[] {
+    switch (itemType) {
+      case "METER":
+        return tree.meters || [];
+      case "BATTERY":
+        return tree.storage?.children || [];
+      case "WEATHER":
+        const meteorologicalData = tree.environmental?.meteorologicalData;
+        if (meteorologicalData) {
+          meteorologicalData.name = "meteorologicalData";
+          return [meteorologicalData];
+        }
+        return [];
+      case "SITE":
+      case "INVERTER":
+      case "STRING":
+      case "OPTIMIZER":
+        return this.extractSiteNodesByItemType(itemType, tree.siteStructure);
+      default:
+        return [];
+    }
   }
 
   extractSiteNodesByItemType(
@@ -102,6 +100,7 @@ export class SolarEdgeDiagramScraperService {
   ): SiteNode[] {
     const result: SiteNode[] = [];
     if (siteNode.itemId.itemType == itemType) {
+      if (itemType === "STRING" && siteNode.children === null) return result; // ignore STRINGS without children (not active)
       result.push(siteNode);
     }
     siteNode.children?.forEach((child) => {
@@ -112,24 +111,41 @@ export class SolarEdgeDiagramScraperService {
   }
 
   createMeasurementRequestData(
-    siteNodes: SiteNode[],
+    items: TreeItem[],
     measurementTypes: { key: ItemType; parameters: AnyParameter[] }[]
   ): MeasurementRequestData {
     const data: MeasurementRequestData = [];
-    siteNodes.forEach((node) => {
+    items.forEach((item) => {
       const index = measurementTypes.findIndex(
-        (mt) => mt.key === node.itemId.itemType
+        (mt) => mt.key === item.itemId.itemType
       );
       let currentMeasurementTypes: AnyParameter[] = [];
       if (index !== -1) {
         currentMeasurementTypes = measurementTypes[index].parameters;
+      } else {
+        return; // skip this item
       }
+
+      // Special handling for WEATHER: only itemType in device, deviceName is "meteorologicalData"
+      let device: any;
+      let deviceName: string;
+
+      if (item.itemId.itemType === "WEATHER") {
+        device = { itemType: item.itemId.itemType };
+        deviceName = "meteorologicalData";
+      } else {
+        device = {
+          itemType: item.itemId.itemType,
+          id: item.itemId.id,
+          identifier: item.itemId.identifier,
+          connectedToInverter: item.itemId.connectedToInverter,
+        };
+        deviceName = item.name || "";
+      }
+
       const request: MeasurementRequest = {
-        device: {
-          itemType: node.itemId.itemType,
-          id: node.itemId.id,
-        },
-        deviceName: node.name || "",
+        device,
+        deviceName,
         measurementTypes: currentMeasurementTypes,
       };
       data.push(request);
@@ -154,18 +170,7 @@ export class SolarEdgeDiagramScraperService {
         endDate = startDate;
       }
       const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/devices-measurements?start-date=${startDate}&end-date=${endDate}`;
-      const response = await this.api.post(url, requestedMeasurements, {
-        headers: {
-          "Content-Type": "application/json",
-          // "X-CSRF-TOKEN": this.x_csrf_token,
-          "User-Agent": "PostmanRuntime/7.51.0",
-        },
-      });
-      fs.writeFileSync(
-        "measurements.json",
-        JSON.stringify(response.data, null, 2)
-      );
-      console.log("Measurements data saved to measurements.json");
+      const response = await this.api.post(url, requestedMeasurements);
       return response.data as Measurements;
     } catch (error: any) {
       throw new Error(`getMeasurements failed: ${error.message}`);

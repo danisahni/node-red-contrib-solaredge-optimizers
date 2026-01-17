@@ -2,26 +2,32 @@ import { ItemType } from "./parameters";
 
 export interface ItemId {
   itemType: ItemType;
-  id: string;
-  identifier: string;
+  id?: string; // optional, not present for WEATHER
+  identifier?: string; // optional, not present for METER and WEATHER
   originalSerial?: string;
   connectedToInverter?: string;
 }
 
-export interface SiteNode {
+/**
+ * Base interface for all items in the SolarEdge tree
+ * (Site, Inverter, String, Optimizer, Meter, Battery, Weather)
+ */
+export interface TreeItem {
   itemId: ItemId;
   name?: string;
   uuid?: string;
   order?: number;
   parameters?: string[];
-  children?: SiteNode[] | null;
-  isContainChildren?: boolean;
   status?: string;
-  // additional optional fields sometimes present on nodes
   reporterId?: number | null;
   model?: string;
   manufacturer?: string;
   nameplateCapacity?: number;
+}
+
+export interface SiteNode extends TreeItem {
+  children?: SiteNode[] | null;
+  isContainChildren?: boolean;
 }
 
 export interface SiteStructure {
@@ -32,27 +38,11 @@ export interface SiteStructure {
   children?: SiteNode[] | null;
 }
 
-export interface Meter {
-  itemId: ItemId;
-  name: string;
-  reporterId?: number | null;
-  uuid?: string;
-  status?: string;
-  model?: string;
-  manufacturer?: string;
-  parameters?: string[];
+export interface Meter extends TreeItem {
+  name: string; // override to make it required for Meter
 }
 
-export interface Battery {
-  itemId: ItemId;
-  name?: string;
-  reporterId?: number | null;
-  uuid?: string;
-  status?: string;
-  model?: string;
-  manufacturer?: string;
-  nameplateCapacity?: number;
-  parameters?: string[];
+export interface Battery extends TreeItem {
   children?: null;
 }
 
@@ -62,17 +52,14 @@ export interface Storage {
   children?: Battery[] | null;
 }
 
-export interface MeteorologicalData {
-  itemId: ItemId;
-  parameters?: string[];
-}
+export interface MeteorologicalData extends TreeItem {}
 
 export interface Environmental {
   meteorologicalData?: MeteorologicalData;
 }
 
-export interface SolarEdgeResponse {
-  siteStructure: SiteStructure;
+export interface SolarEdgeTree {
+  siteStructure: SiteStructure; // contains site, inverters, strings and optimizers
   meters?: Meter[];
   storage?: Storage;
   evChargers?: any[];
