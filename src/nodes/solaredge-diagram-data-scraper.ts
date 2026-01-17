@@ -78,22 +78,23 @@ module.exports = function (RED: NodeAPI) {
             },
           ];
 
-          let measurements: Measurements = [];
+          // create data for get measurements
+          const measurementRequestData: MeasurementRequestData = [];
           node.selectedItemTypes.forEach(async (t: ItemType) => {
             const currentItems = scraper.extractItemsFromTreeByItemType(
               t,
               tree
             );
-            const request = scraper.createMeasurementRequestData(
+            const currentRequestData = scraper.createMeasurementRequestData(
               currentItems,
               measurementTypes
             );
-            console.log(request);
-            const measurementsForType = await scraper.getMeasurements(request);
-            console.log(measurementsForType);
-            // measurements.push(...measurementsForType);
-            measurements = measurements.concat(measurementsForType);
+            measurementRequestData.push(...currentRequestData);
           });
+          const measurements: Measurements = await scraper.getMeasurements(
+            measurementRequestData
+          );
+          console.log(measurements.length);
 
           msg.payload = {
             selectedItemTypes: node.selectedItemTypes,
