@@ -2,15 +2,15 @@ import { ItemType } from "./parameters";
 
 export interface ItemId {
   itemType: ItemType;
-  id?: string; // optional, not present for WEATHER
-  identifier?: string; // optional, not present for METER and WEATHER
+  id?: string; // optional, not always present
+  identifier?: string; // optional, not present for METER
   originalSerial?: string;
   connectedToInverter?: string;
 }
 
 /**
  * Base interface for all items in the SolarEdge tree
- * (Site, Inverter, String, Optimizer, Meter, Battery, Weather)
+ * (Site, Inverter, String, Optimizer, Meter, Battery)
  */
 export interface TreeItem {
   itemId: ItemId;

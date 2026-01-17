@@ -3,7 +3,12 @@ import { SolarEdgeDiagramDataScraperConfig } from "../models/types";
 import { SolarEdgeApiService } from "../services/solaredge-api.service";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
 import { SolarEdgeDiagramScraperService } from "../services/solaredge-diagram-scraper-service/solaredege-diagram-scraper-service";
-import { AnyParameter, ItemType, MeasurementRequestData } from "../models";
+import {
+  AnyParameter,
+  ItemType,
+  MeasurementRequestData,
+  SiteNode,
+} from "../models";
 import { Measurements } from "../services/solaredge-diagram-scraper-service/models/measurements";
 
 module.exports = function (RED: NodeAPI) {
@@ -15,7 +20,6 @@ module.exports = function (RED: NodeAPI) {
 
     this.siteId = config.siteId;
     this.timeZoneSettings = config.timeZoneSettings;
-    this.collectAdditionalInfo = config.collectAdditionalInfo;
     this.formatForInfluxDb = config.formatForInfluxDb;
     this.influxDbMeasurement = config.influxDbMeasurement;
     this.selectedItemTypes = config.selectedItemTypes || [];
@@ -25,8 +29,6 @@ module.exports = function (RED: NodeAPI) {
     this.selectedOptimizerParameters = config.selectedOptimizerParameters || [];
     this.selectedMeterParameters = config.selectedMeterParameters || [];
     this.selectedBatteryParameters = config.selectedBatteryParameters || [];
-    this.selectedMeteorologicalParameters =
-      config.selectedMeteorologicalParameters || [];
     const node = this;
 
     node.on(
@@ -37,34 +39,61 @@ module.exports = function (RED: NodeAPI) {
         done: (err?: Error) => void
       ) {
         try {
-          // const scraper = new SolarEdgeDiagramScraperService(
-          //   node.siteId,
-          //   node.credentials.username,
-          //   node.credentials.password
-          // );
-          // await scraper.login();
-          // const tree = await scraper.getTree();
-          // const measurements: Measurements = [];
-          // node.selectedItemTypes.forEach(async (type: ItemType) => {
-          //   const siteNodes = scraper.extractSiteNodesByItemType(
-          //     type,
-          //     tree.siteStructure
-          //   );
-          //   const measurementTypes: {
-          //     key: ItemType;
-          //     parameters: AnyParameter[];
-          //   }[] = [
-          //     {
-          //       key: "OPTIMIZER",
-          //       parameters: ["PRODUCTION_POWER", "PRODUCTION_ENERGY"],
-          //     },
-          //   ];
-          //   const requestedMeasurements: MeasurementRequestData =
-          //     scraper.createMeasurementRequestData(siteNodes, measurementTypes);
-          //   console.log(requestedMeasurements);
-          //   const data = await scraper.getMeasurements(requestedMeasurements);
-          //   measurements.push(...data);
-          // });
+          const scraper = new SolarEdgeDiagramScraperService(
+            node.siteId,
+            node.credentials.username,
+            node.credentials.password
+          );
+          await scraper.login();
+          const tree = await scraper.getTree();
+
+          // create measurement types
+          const measurementTypes: {
+            key: ItemType;
+            parameters: AnyParameter[];
+          }[] = [
+            {
+              key: "SITE",
+              parameters: node.selectedSiteParameters,
+            },
+            {
+              key: "INVERTER",
+              parameters: node.selectedInverterParameters,
+            },
+            {
+              key: "STRING",
+              parameters: node.selectedStringParameters,
+            },
+            {
+              key: "OPTIMIZER",
+              parameters: node.selectedOptimizerParameters,
+            },
+            {
+              key: "METER",
+              parameters: node.selectedMeterParameters,
+            },
+            {
+              key: "BATTERY",
+              parameters: node.selectedBatteryParameters,
+            },
+          ];
+
+          let measurements: Measurements = [];
+          node.selectedItemTypes.forEach(async (t: ItemType) => {
+            const currentItems = scraper.extractItemsFromTreeByItemType(
+              t,
+              tree
+            );
+            const request = scraper.createMeasurementRequestData(
+              currentItems,
+              measurementTypes
+            );
+            console.log(request);
+            const measurementsForType = await scraper.getMeasurements(request);
+            console.log(measurementsForType);
+            // measurements.push(...measurementsForType);
+            measurements = measurements.concat(measurementsForType);
+          });
 
           msg.payload = {
             selectedItemTypes: node.selectedItemTypes,
@@ -74,9 +103,7 @@ module.exports = function (RED: NodeAPI) {
             selectedOptimizerParameters: node.selectedOptimizerParameters,
             selectedMeterParameters: node.selectedMeterParameters,
             selectedBatteryParameters: node.selectedBatteryParameters,
-            selectedMeteorologicalParameters:
-              node.selectedMeteorologicalParameters,
-            // measurements: measurements,
+            measurements: measurements,
           };
           node.status({ fill: "green", shape: "dot", text: "Success" });
         } catch (error) {

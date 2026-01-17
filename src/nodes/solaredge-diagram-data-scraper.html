@@ -25,7 +25,6 @@
       selectedOptimizerParameters: { value: [] },
       selectedMeterParameters: { value: [] },
       selectedBatteryParameters: { value: [] },
-      selectedWeatherParameters: { value: [] },
     },
     credentials: {
       username: { type: "text" },
@@ -197,12 +196,6 @@
         "selectedBatteryParameters",
         "node-input-battery-parameter"
       );
-      createCheckboxes(
-        "WEATHER_PARAMETERS",
-        "#node-input-weather-parameters-container",
-        "selectedWeatherParameters",
-        "node-input-weather-parameter"
-      );
 
       // Initialize visible tabs based on selected ItemTypes
       updateVisibleTabs();
@@ -237,9 +230,6 @@
       );
       this.selectedBatteryParameters = saveSelectedCheckboxes(
         "#node-input-battery-parameters-container"
-      );
-      this.selectedWeatherParameters = saveSelectedCheckboxes(
-        "#node-input-weather-parameters-container"
       );
     },
   });
@@ -318,9 +308,6 @@
     </div>
     <div id="param-tab-battery" style="display:none">
       <div id="node-input-battery-parameters-container"></div>
-    </div>
-    <div id="param-tab-weather" style="display:none">
-      <div id="node-input-weather-parameters-container"></div>
     </div>
   </div>
 </script>

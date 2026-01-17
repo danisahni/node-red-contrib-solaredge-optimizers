@@ -77,13 +77,6 @@ export class SolarEdgeDiagramScraperService {
         return tree.meters || [];
       case "BATTERY":
         return tree.storage?.children || [];
-      case "WEATHER":
-        const meteorologicalData = tree.environmental?.meteorologicalData;
-        if (meteorologicalData) {
-          meteorologicalData.name = "meteorologicalData";
-          return [meteorologicalData];
-        }
-        return [];
       case "SITE":
       case "INVERTER":
       case "STRING":
@@ -126,22 +119,13 @@ export class SolarEdgeDiagramScraperService {
         return; // skip this item
       }
 
-      // Special handling for WEATHER: only itemType in device, deviceName is "meteorologicalData"
-      let device: any;
-      let deviceName: string;
-
-      if (item.itemId.itemType === "WEATHER") {
-        device = { itemType: item.itemId.itemType };
-        deviceName = "meteorologicalData";
-      } else {
-        device = {
-          itemType: item.itemId.itemType,
-          id: item.itemId.id,
-          identifier: item.itemId.identifier,
-          connectedToInverter: item.itemId.connectedToInverter,
-        };
-        deviceName = item.name || "";
-      }
+      const device = {
+        itemType: item.itemId.itemType,
+        id: item.itemId.id,
+        identifier: item.itemId.identifier,
+        connectedToInverter: item.itemId.connectedToInverter,
+      };
+      const deviceName = item.name || "";
 
       const request: MeasurementRequest = {
         device,

@@ -3,7 +3,6 @@ import {
   BatteryParameter,
   InverterParameter,
   ItemType,
-  WeatherParameter,
   MeterParameter,
   OptimizerParameter,
   SiteParameter,
@@ -32,7 +31,6 @@ export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
   selectedOptimizerParameters?: OptimizerParameter[];
   selectedMeterParameters?: MeterParameter[];
   selectedBatteryParameters?: BatteryParameter[];
-  selectedMeteorologicalParameters?: WeatherParameter[];
 }
 
 export interface SolarEdgeOptimizersNode extends Node {

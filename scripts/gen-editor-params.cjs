@@ -5,17 +5,19 @@ const paramsPath = path.join(
   __dirname,
   "..",
   "dist",
+  "services",
+  "solaredge-diagram-scraper-service",
   "models",
   "parameters.js"
-); // ggf. anpassen
+);
 const mod = require(paramsPath);
 const params = mod && mod.default ? mod.default : mod;
 
-// Nimm alle Exporte, die Arrays sind und Strings enthalten
+// Take all exports that are arrays and contain strings
 const outObj = {};
 for (const [name, value] of Object.entries(params)) {
   if (Array.isArray(value)) {
-    // optional: nur string arrays zulassen
+    // optional: only allow string arrays
     const stringsOnly = value.filter((v) => typeof v === "string");
     if (stringsOnly.length) outObj[name] = stringsOnly;
   }
