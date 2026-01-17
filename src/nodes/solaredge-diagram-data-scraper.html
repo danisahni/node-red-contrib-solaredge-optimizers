@@ -73,8 +73,60 @@
         const $container = $(containerSelector);
         $container.empty();
 
-        // Add grid layout style to container
-        $container.css({
+        // Add Select/Deselect All toggle
+        const toggleId = `toggle-${idPrefix}`;
+        const $toggleRow = $(`
+          <div style="margin-bottom: 10px;">
+            <label style="display: inline-block; width: auto; cursor: pointer;">
+              <input type="checkbox" id="${toggleId}" style="width: auto; margin-right: 5px;" />
+              <span class="toggle-label">Select All</span>
+            </label>
+          </div>
+        `);
+
+        const $toggleCheckbox = $toggleRow.find(`#${toggleId}`);
+        const $toggleLabel = $toggleRow.find(".toggle-label");
+
+        // Function to update toggle state based on selections
+        function updateToggleState() {
+          const allCheckboxes = $container.find(
+            "input[type=checkbox][data-id]"
+          );
+          const checkedCheckboxes = allCheckboxes.filter(":checked");
+          const totalCount = allCheckboxes.length;
+          const checkedCount = checkedCheckboxes.length;
+
+          if (checkedCount === 0) {
+            // Nothing selected
+            $toggleCheckbox.prop("checked", false);
+            $toggleCheckbox.prop("indeterminate", false);
+            $toggleLabel.text("Select All");
+          } else if (checkedCount === totalCount) {
+            // All selected
+            $toggleCheckbox.prop("checked", true);
+            $toggleCheckbox.prop("indeterminate", false);
+            $toggleLabel.text("Deselect All");
+          } else {
+            // Partial selection
+            $toggleCheckbox.prop("checked", false);
+            $toggleCheckbox.prop("indeterminate", true);
+            $toggleLabel.text("Select All");
+          }
+        }
+
+        // Toggle all checkboxes
+        $toggleCheckbox.on("change", function () {
+          const shouldCheck = $(this).is(":checked");
+          $container
+            .find("input[type=checkbox][data-id]")
+            .prop("checked", shouldCheck);
+          updateToggleState();
+        });
+
+        $container.append($toggleRow);
+
+        // Create checkbox grid
+        const $checkboxGrid = $("<div></div>").css({
           display: "grid",
           "grid-template-columns": "1fr 1fr",
           gap: "5px",
@@ -94,8 +146,18 @@
           $row
             .find("input[type=checkbox]")
             .prop("checked", selectedItems.includes(item));
-          $container.append($row);
+          $checkboxGrid.append($row);
         });
+
+        $container.append($checkboxGrid);
+
+        // Add change listener to individual checkboxes to update toggle
+        $checkboxGrid.on("change", "input[type=checkbox]", function () {
+          updateToggleState();
+        });
+
+        // Initialize toggle state
+        updateToggleState();
       }
 
       // Function to update visible tabs based on selected ItemTypes
