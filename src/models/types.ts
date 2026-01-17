@@ -76,10 +76,8 @@ export interface OptimizerTag {
 
 export interface InfluxDbEntry {
   measurement: string;
-  fields: {
-    power: number;
-  };
-  tags: Omit<OptimizerData, "data">;
+  fields: Record<string, number | string | boolean>;
+  tags: Record<string, string>;
   timestamp: number;
 }
 

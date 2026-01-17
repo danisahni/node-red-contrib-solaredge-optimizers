@@ -14,7 +14,7 @@ import { Measurements } from "../services/solaredge-diagram-scraper-service/mode
 module.exports = function (RED: NodeAPI) {
   function SolarEdgeDiagramDataScraperNode(
     this: any,
-    config: SolarEdgeDiagramDataScraperConfig
+    config: SolarEdgeDiagramDataScraperConfig,
   ) {
     RED.nodes.createNode(this, config);
 
@@ -36,13 +36,13 @@ module.exports = function (RED: NodeAPI) {
       async function (
         msg: NodeMessageInFlow,
         send: (msg: NodeMessage | NodeMessage[]) => void,
-        done: (err?: Error) => void
+        done: (err?: Error) => void,
       ) {
         try {
           const scraper = new SolarEdgeDiagramScraperService(
             node.siteId,
             node.credentials.username,
-            node.credentials.password
+            node.credentials.password,
           );
           await scraper.login();
           const tree = await scraper.getTree();
@@ -83,19 +83,20 @@ module.exports = function (RED: NodeAPI) {
           node.selectedItemTypes.forEach(async (t: ItemType) => {
             const currentItems = scraper.extractItemsFromTreeByItemType(
               t,
-              tree
+              tree,
             );
             const currentRequestData = scraper.createMeasurementRequestData(
               currentItems,
-              measurementTypes
+              measurementTypes,
             );
             measurementRequestData.push(...currentRequestData);
           });
+
           // get measurements
           const measurements: Measurements = await scraper.getMeasurements(
-            measurementRequestData
+            measurementRequestData,
           );
-
+          // convert time to ISO string if UTC is selected
           if (node.timeZoneSettings === "UTC") {
             measurements.forEach((m) => {
               m.measurements.forEach((record) => {
@@ -104,9 +105,18 @@ module.exports = function (RED: NodeAPI) {
             });
           }
 
-          msg.payload = {
-            measurements: measurements,
-          };
+          // format for InfluxDB if selected
+          if (node.formatForInfluxDb && node.influxDbMeasurement) {
+            const influxFormattedMeasurements =
+              InfluxDbUtils.formatMeasurementsForInfluxDb(
+                measurements,
+                node.influxDbMeasurement,
+              );
+            msg.payload = influxFormattedMeasurements;
+          } else {
+            msg.payload = measurements;
+          }
+
           node.status({ fill: "green", shape: "dot", text: "Success" });
         } catch (error) {
           const errorMessage =
@@ -118,7 +128,7 @@ module.exports = function (RED: NodeAPI) {
 
         send(msg);
         done();
-      }
+      },
     );
   }
 
@@ -130,6 +140,6 @@ module.exports = function (RED: NodeAPI) {
         username: { type: "text" },
         password: { type: "password" },
       },
-    }
+    },
   );
 };

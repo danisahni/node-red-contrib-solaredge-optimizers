@@ -70,7 +70,7 @@ export class SolarEdgeDiagramScraperService {
 
   extractItemsFromTreeByItemType(
     itemType: ItemType,
-    tree: SolarEdgeTree
+    tree: SolarEdgeTree,
   ): TreeItem[] {
     switch (itemType) {
       case "METER":
@@ -89,7 +89,7 @@ export class SolarEdgeDiagramScraperService {
 
   extractSiteNodesByItemType(
     itemType: ItemType,
-    siteNode: SiteNode
+    siteNode: SiteNode,
   ): SiteNode[] {
     const result: SiteNode[] = [];
     if (siteNode.itemId.itemType == itemType) {
@@ -105,12 +105,12 @@ export class SolarEdgeDiagramScraperService {
 
   createMeasurementRequestData(
     items: TreeItem[],
-    measurementTypes: { key: ItemType; parameters: AnyParameter[] }[]
+    measurementTypes: { key: ItemType; parameters: AnyParameter[] }[],
   ): MeasurementRequestData {
     const data: MeasurementRequestData = [];
     items.forEach((item) => {
       const index = measurementTypes.findIndex(
-        (mt) => mt.key === item.itemId.itemType
+        (mt) => mt.key === item.itemId.itemType,
       );
       let currentMeasurementTypes: AnyParameter[] = [];
       if (index !== -1) {
@@ -139,15 +139,16 @@ export class SolarEdgeDiagramScraperService {
   async getMeasurements(
     requestedMeasurements: MeasurementRequestData,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
   ) {
     try {
       if (!startDate && !endDate) {
         const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
+        // const yesterday = new Date(today);
+        // yesterday.setDate(today.getDate() - 1);
         endDate = today.toISOString().slice(0, 10);
-        startDate = yesterday.toISOString().slice(0, 10);
+        // startDate = yesterday.toISOString().slice(0, 10);
+        startDate = endDate;
       } else if (!startDate) {
         startDate = endDate;
       } else {

@@ -2,15 +2,26 @@
 
 import { config } from "dotenv";
 import { SolarEdgeOptimizerScraperService } from "./src/services/solaredge-optimizer-scraper.service";
-import { SolarEdgeDiagramScraper } from "./src/services/solaredege-diagram-scraper.service";
+import { SolarEdgeDiagramScraperService } from "./src/services/solaredge-diagram-scraper-service/solaredege-diagram-scraper-service";
+import { SolarEdgeApiService } from "./src/services/solaredge-api.service";
+import { InfluxDbUtils } from "./src/services/influxdb-utils.service";
+
 import fs from "fs";
 import {
   ItemType,
-  SolarEdgeResponse,
+  SolarEdgeTree,
   SiteNode,
   MeasurementRequestData,
   ITEM_TYPES,
+  SITE_PARAMETERS,
+  AnyParameter,
+  INVERTER_PARAMETERS,
+  STRING_PARAMETERS,
+  OPTIMIZER_PARAMETERS,
+  METER_PARAMETERS,
+  BATTERY_PARAMETERS,
 } from "./src/models";
+import { Measurements } from "./src/services/solaredge-diagram-scraper-service/models/measurements";
 
 // Lade Umgebungsvariablen aus .env-Datei
 config();
@@ -65,37 +76,97 @@ async function main() {
     process.exit(1);
   }
 }
-
-async function mainDiagramScraper() {
-  const scraper = new SolarEdgeDiagramScraper(
+async function mainApiScraper() {
+  const scraper = new SolarEdgeApiService(
     CONFIG.siteId,
     CONFIG.username,
     CONFIG.password
   );
-  // await scraper.login();
-  // await scraper.bootstrapSession();
-  // const site = await scraper.getSite();
-  // console.log(site);
-  const fileContent = fs.readFileSync("./response.json", "utf-8");
-  const tree = JSON.parse(fileContent) as SolarEdgeResponse;
-  const typeSortedSiteNodes: SiteNode[][] = [];
+  await scraper.login();
+  const timeUnit = "4";
+  const timeZoneSettings = "UTC";
+  const additionalInfo = true;
 
-  ITEM_TYPES.forEach((t) => {
-    typeSortedSiteNodes.push(
-      scraper.extractSiteNodesByItemType(t, tree.siteStructure)
-    );
-  });
-  console.log(typeSortedSiteNodes);
+  let data = await scraper.getData(timeUnit, timeZoneSettings);
+  console.log(data);
+  if (additionalInfo) {
+    data = await scraper.addAdditionalInfo(data);
+  }
+  console.log(data);
+  fs.writeFileSync("./api-response.json", JSON.stringify(data, null, 2));
+  const influxData = InfluxDbUtils.convertToInflux(data, "test_measurement");
+  fs.writeFileSync("./influx-data.json", JSON.stringify(influxData, null, 2));
+}
+async function mainDiagramScraper() {
+  const scraper = new SolarEdgeDiagramScraperService(
+    CONFIG.siteId,
+    CONFIG.username,
+    CONFIG.password
+  );
+  await scraper.login();
+  const tree = await scraper.getTree();
+  console.log(tree);
+  // const fileContent = fs.readFileSync("./tree.json", "utf-8");
+  // const tree = JSON.parse(fileContent) as SolarEdgeTree;
+  const selectedItemTypes: ItemType[] = [
+    // "SITE",
+    // "INVERTER",
+    // "STRING",
+    "OPTIMIZER",
+    // "BATTERY",
+    // "METER",
+  ];
+
+  const measurementTypes: { key: ItemType; parameters: AnyParameter[] }[] = [
+    {
+      key: "SITE",
+      parameters: JSON.parse(JSON.stringify(SITE_PARAMETERS)),
+    },
+    {
+      key: "INVERTER",
+      parameters: JSON.parse(JSON.stringify(INVERTER_PARAMETERS)),
+    },
+    {
+      key: "STRING",
+      parameters: JSON.parse(JSON.stringify(STRING_PARAMETERS)),
+    },
+    {
+      key: "OPTIMIZER",
+      parameters: JSON.parse(JSON.stringify(OPTIMIZER_PARAMETERS)),
+    },
+    {
+      key: "METER",
+      parameters: JSON.parse(JSON.stringify(METER_PARAMETERS)),
+    },
+    {
+      key: "BATTERY",
+      parameters: JSON.parse(JSON.stringify(BATTERY_PARAMETERS)),
+    },
+  ];
 
   // create data for get measurements
-  await scraper.login();
-  await scraper.bootstrapSession();
-  const requestContent = fs.readFileSync("./request.json", "utf-8");
-  const requestedMeasurementsJSON = JSON.parse(
-    requestContent
-  ) as MeasurementRequestData;
-  const measurements = await scraper.getMeasurements(requestedMeasurementsJSON);
-  console.log(measurements);
+  const measurementRequestData: MeasurementRequestData = [];
+  selectedItemTypes.forEach(async (t) => {
+    const currentItems = scraper.extractItemsFromTreeByItemType(t, tree);
+    const currentRequestData = scraper.createMeasurementRequestData(
+      currentItems,
+      measurementTypes
+    );
+    measurementRequestData.push(...currentRequestData);
+  });
+  const startDate = "2026-01-01";
+  const endDate = "2026-01-01";
+  const measurements: Measurements = await scraper.getMeasurements(
+    measurementRequestData,
+    startDate,
+    endDate
+  );
+  console.log(measurements.length);
+  const influxFormattedMeasurements =
+    InfluxDbUtils.formatMeasurementsForInfluxDb(
+      measurements,
+      "test_measurement"
+    );
 }
 // Graceful shutdown
 process.on("SIGINT", () => {
@@ -105,3 +176,4 @@ process.on("SIGINT", () => {
 
 // Programm starten
 mainDiagramScraper();
+// mainApiScraper();
