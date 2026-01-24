@@ -1,4 +1,4 @@
-<script src="/resources/node-red-contrib-solaredge-optimizers/parameters.js"></script>
+<script src="./resources/node-red-contrib-solaredge-optimizers/parameters.js"></script>
 <script type="text/javascript">
   RED.nodes.registerType("solaredge-diagram-data-scraper", {
     category: "function",
@@ -63,7 +63,7 @@
         enumKey,
         containerSelector,
         selectedKey,
-        idPrefix
+        idPrefix,
       ) {
         const defs = window.SOLAREDGE_ENUMS || {};
         const items = defs[enumKey] || [];
@@ -90,7 +90,7 @@
         // Function to update toggle state based on selections
         function updateToggleState() {
           const allCheckboxes = $container.find(
-            "input[type=checkbox][data-id]"
+            "input[type=checkbox][data-id]",
           );
           const checkedCheckboxes = allCheckboxes.filter(":checked");
           const totalCount = allCheckboxes.length;
@@ -163,7 +163,7 @@
       // Function to update visible tabs based on selected ItemTypes
       function updateVisibleTabs() {
         const selectedTypes = $(
-          "#node-input-item-types-container input[type=checkbox]:checked"
+          "#node-input-item-types-container input[type=checkbox]:checked",
         )
           .map(function () {
             return $(this).data("id");
@@ -210,7 +210,7 @@
         "ITEM_TYPES",
         "#node-input-item-types-container",
         "selectedItemTypes",
-        "node-input-item-type"
+        "node-input-item-type",
       );
 
       // Add change handler to ItemTypes checkboxes
@@ -219,44 +219,44 @@
         "input[type=checkbox]",
         function () {
           updateVisibleTabs();
-        }
+        },
       );
 
       createCheckboxes(
         "SITE_PARAMETERS",
         "#node-input-site-parameters-container",
         "selectedSiteParameters",
-        "node-input-site-parameter"
+        "node-input-site-parameter",
       );
       createCheckboxes(
         "INVERTER_PARAMETERS",
         "#node-input-inverter-parameters-container",
         "selectedInverterParameters",
-        "node-input-inverter-parameter"
+        "node-input-inverter-parameter",
       );
       createCheckboxes(
         "STRING_PARAMETERS",
         "#node-input-string-parameters-container",
         "selectedStringParameters",
-        "node-input-string-parameter"
+        "node-input-string-parameter",
       );
       createCheckboxes(
         "OPTIMIZER_PARAMETERS",
         "#node-input-optimizer-parameters-container",
         "selectedOptimizerParameters",
-        "node-input-optimizer-parameter"
+        "node-input-optimizer-parameter",
       );
       createCheckboxes(
         "METER_PARAMETERS",
         "#node-input-meter-parameters-container",
         "selectedMeterParameters",
-        "node-input-meter-parameter"
+        "node-input-meter-parameter",
       );
       createCheckboxes(
         "BATTERY_PARAMETERS",
         "#node-input-battery-parameters-container",
         "selectedBatteryParameters",
-        "node-input-battery-parameter"
+        "node-input-battery-parameter",
       );
 
       // Initialize visible tabs based on selected ItemTypes
@@ -273,25 +273,25 @@
       }
 
       this.selectedItemTypes = saveSelectedCheckboxes(
-        "#node-input-item-types-container"
+        "#node-input-item-types-container",
       );
       this.selectedSiteParameters = saveSelectedCheckboxes(
-        "#node-input-site-parameters-container"
+        "#node-input-site-parameters-container",
       );
       this.selectedInverterParameters = saveSelectedCheckboxes(
-        "#node-input-inverter-parameters-container"
+        "#node-input-inverter-parameters-container",
       );
       this.selectedStringParameters = saveSelectedCheckboxes(
-        "#node-input-string-parameters-container"
+        "#node-input-string-parameters-container",
       );
       this.selectedOptimizerParameters = saveSelectedCheckboxes(
-        "#node-input-optimizer-parameters-container"
+        "#node-input-optimizer-parameters-container",
       );
       this.selectedMeterParameters = saveSelectedCheckboxes(
-        "#node-input-meter-parameters-container"
+        "#node-input-meter-parameters-container",
       );
       this.selectedBatteryParameters = saveSelectedCheckboxes(
-        "#node-input-battery-parameters-container"
+        "#node-input-battery-parameters-container",
       );
     },
   });
