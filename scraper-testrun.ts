@@ -21,7 +21,10 @@ import {
   METER_PARAMETERS,
   BATTERY_PARAMETERS,
 } from "./src/models";
-import { Measurements } from "./src/services/solaredge-diagram-scraper-service/models/measurements";
+import {
+  MeasurementRecord,
+  Measurements,
+} from "./src/services/solaredge-diagram-scraper-service/models/measurements";
 
 // Lade Umgebungsvariablen aus .env-Datei
 config();
@@ -42,7 +45,7 @@ async function main() {
     const api = new SolarEdgeOptimizerScraperService(
       CONFIG.siteId,
       CONFIG.username,
-      CONFIG.password
+      CONFIG.password,
     );
 
     console.log("📡 Versuche Login...");
@@ -52,7 +55,7 @@ async function main() {
     console.log(`   Anzahl der Optimizer: ${site.optimizers.length}\n`);
     const opti = site.optimizers[0];
     console.log(
-      `📊 Lade zeitlichen Verlauf des Optimizers ${opti.displayName}`
+      `📊 Lade zeitlichen Verlauf des Optimizers ${opti.displayName}`,
     );
     // const endDate = null;
     // const startDate = null;
@@ -62,7 +65,7 @@ async function main() {
       opti.optimizerId,
       startDate,
       endDate,
-      "Current"
+      "Current",
     );
     console.log(data);
   } catch (error) {
@@ -80,7 +83,7 @@ async function mainApiScraper() {
   const scraper = new SolarEdgeApiService(
     CONFIG.siteId,
     CONFIG.username,
-    CONFIG.password
+    CONFIG.password,
   );
   await scraper.login();
   const timeUnit = "4";
@@ -98,10 +101,20 @@ async function mainApiScraper() {
   fs.writeFileSync("./influx-data.json", JSON.stringify(influxData, null, 2));
 }
 async function mainDiagramScraper() {
+  // const scraper2 = new SolarEdgeOptimizerScraperService(
+  //   CONFIG.siteId,
+  //   CONFIG.username,
+  //   CONFIG.password,
+  // );
+  // await scraper2.login();
+  // const site2 = await scraper2.requestSolarEdgeSite();
+  // console.log(site2);
+  // fs.writeFileSync("./site-response.json", JSON.stringify(site2, null, 2));
+
   const scraper = new SolarEdgeDiagramScraperService(
     CONFIG.siteId,
     CONFIG.username,
-    CONFIG.password
+    CONFIG.password,
   );
   await scraper.login();
   const tree = await scraper.getTree();
@@ -110,9 +123,9 @@ async function mainDiagramScraper() {
   // const tree = JSON.parse(fileContent) as SolarEdgeTree;
   const selectedItemTypes: ItemType[] = [
     // "SITE",
-    // "INVERTER",
+    "INVERTER",
     // "STRING",
-    "OPTIMIZER",
+    // "OPTIMIZER",
     // "BATTERY",
     // "METER",
   ];
@@ -150,23 +163,57 @@ async function mainDiagramScraper() {
     const currentItems = scraper.extractItemsFromTreeByItemType(t, tree);
     const currentRequestData = scraper.createMeasurementRequestData(
       currentItems,
-      measurementTypes
+      measurementTypes,
     );
     measurementRequestData.push(...currentRequestData);
   });
-  const startDate = "2026-01-01";
-  const endDate = "2026-01-01";
+  // const startDate = "2026-01-01";
+  // const endDate = "2026-01-01";
   const measurements: Measurements = await scraper.getMeasurements(
     measurementRequestData,
-    startDate,
-    endDate
+    // startDate,
+    // endDate,
   );
   console.log(measurements.length);
+  fs.writeFileSync(
+    "./measurements.json",
+    JSON.stringify(measurements, null, 2),
+  );
+  const collectLifetimeEnergy = true;
+  // append lifetime energy data to measurements
+  if (collectLifetimeEnergy) {
+    const logicalLayout = await scraper.getLogicalLayout();
+    const lifetimeEnergy = await scraper.getLifetimeEnergy();
+    const mappedLifetimeEnergy = scraper.mapLifetimeEnergyIdsAndSerialNumbers(
+      lifetimeEnergy,
+      logicalLayout,
+    );
+    fs.writeFileSync(
+      "./mapped-lifetime-energy.json",
+      JSON.stringify(mappedLifetimeEnergy, null, 2),
+    );
+    fs.writeFileSync(
+      "./logical-layout.json",
+      JSON.stringify(logicalLayout, null, 2),
+    );
+    const lifetimeEnergyMeasurements = scraper.createLifetimeEnergyMeasurements(
+      mappedLifetimeEnergy,
+      measurements,
+    );
+    measurements.push(...lifetimeEnergyMeasurements);
+  }
+  console.log(measurements.length);
+
   const influxFormattedMeasurements =
     InfluxDbUtils.formatMeasurementsForInfluxDb(
       measurements,
-      "test_measurement"
+      "test_measurement",
     );
+  console.log(influxFormattedMeasurements.length);
+  fs.writeFileSync(
+    "./influxdb-measurements.json",
+    JSON.stringify(influxFormattedMeasurements, null, 2),
+  );
 }
 // Graceful shutdown
 process.on("SIGINT", () => {

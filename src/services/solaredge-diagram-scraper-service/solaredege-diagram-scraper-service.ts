@@ -14,8 +14,15 @@ import {
   SolarEdgeTree,
   TreeItem,
 } from "../../models";
-import { Measurements } from "./models/measurements";
-import { LifetimeEnergyResponse } from "./models/lifetime-energy-response";
+import {
+  Measurement,
+  MeasurementRecord,
+  Measurements,
+} from "./models/measurements";
+import {
+  LifetimeEnergyResponse,
+  MappedLifetimeEnergyEntry,
+} from "./models/lifetime-energy-response";
 import {
   LogicalLayoutResponse,
   LogicalTreeNode,
@@ -171,10 +178,7 @@ export class SolarEdgeDiagramScraperService {
     }
   }
 
-  /**
-   * Get lifetime energy data using authenticated API
-   */
-  async getLifeTimeEnergy(): Promise<LifetimeEnergyResponse> {
+  async getLifetimeEnergy(): Promise<LifetimeEnergyResponse> {
     try {
       const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/energy?timeUnit=ALL`;
       const response = await this.api.post(
@@ -186,9 +190,10 @@ export class SolarEdgeDiagramScraperService {
       );
       return response.data as LifetimeEnergyResponse;
     } catch (error: any) {
-      throw new Error(`getLifeTimeEnergy failed: ${error.message}`);
+      throw new Error(`getLifetimeEnergy failed: ${error.message}`);
     }
   }
+
   async getLogicalLayout(): Promise<LogicalLayoutResponse> {
     try {
       const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/logical`;
@@ -198,10 +203,11 @@ export class SolarEdgeDiagramScraperService {
       throw new Error(`getLogicalLayout failed: ${error.message}`);
     }
   }
+
   mapLifetimeEnergyIdsAndSerialNumbers(
-    lifeTimeEnergy: LifetimeEnergyResponse,
+    lifetimeEnergy: LifetimeEnergyResponse,
     logicalLayout: LogicalLayoutResponse,
-  ) {
+  ): MappedLifetimeEnergyEntry[] {
     // flatten logical layout
     const nodes: LogicalTreeNodeData[] = [];
     const traverseNodes = (node: LogicalTreeNode) => {
@@ -212,29 +218,76 @@ export class SolarEdgeDiagramScraperService {
         node.children.forEach((child) => traverseNodes(child));
       }
     };
+
     traverseNodes(logicalLayout.logicalTree);
-    const lifetimeEnergyIds = Object.keys(lifeTimeEnergy);
-    const lifetimeEnergyMapped: {
-      id: string;
-      serialNumber: string | null;
-      name: string;
-      displayName: string;
-      type: string;
-      lifeTimeEnergy: number;
-    }[] = [];
+
+    const lifetimeEnergyIds = Object.keys(lifetimeEnergy);
+    const lifetimeEnergyMapped: MappedLifetimeEnergyEntry[] = [];
+
     lifetimeEnergyIds.forEach((reporterId) => {
       const node = nodes.find((n) => n.id.toString() === reporterId);
       if (node) {
         lifetimeEnergyMapped.push({
           id: reporterId,
           serialNumber: node.serialNumber,
-          lifeTimeEnergy: lifeTimeEnergy[reporterId].unscaledEnergy,
-          name: node.name,
-          displayName: node.displayName,
-          type: node.type,
+          lifetimeEnergy: lifetimeEnergy[reporterId].unscaledEnergy,
         });
       }
     });
     return lifetimeEnergyMapped;
+  }
+
+  createLifetimeEnergyMeasurements(
+    mappedLifetimeEnergy: MappedLifetimeEnergyEntry[],
+    measurements: Measurements,
+    addToNearestTimestamp: boolean = true,
+  ): Measurements {
+    const now = new Date();
+    const lifetimeEnergyMeasurements: Measurements = [];
+    mappedLifetimeEnergy.forEach((le) => {
+      // find measurment record with same serial number (as blueprint)
+      const measurementRecord = measurements.find(
+        (mr) => mr.device.id === le.serialNumber,
+      );
+      if (measurementRecord) {
+        let timestamp: string = "";
+        if (addToNearestTimestamp) {
+          let best: Measurement | undefined;
+          let bestDiff = Infinity;
+          const now = new Date();
+          // assuming measurements are sorted by time ascending
+          for (const m of measurementRecord.measurements) {
+            const t = new Date(m.time).getTime();
+            if (t > now.getTime()) break;
+            const diff = Math.abs(now.getTime() - t);
+            if (diff < bestDiff) {
+              best = m;
+              bestDiff = diff;
+            }
+          }
+          // 15 Minuten in ms
+          const FIFTEEN_MINUTES = 15 * 60 * 1000;
+          if (best && bestDiff <= FIFTEEN_MINUTES) {
+            timestamp = best.time;
+          } else {
+            timestamp = now.toISOString();
+          }
+        }
+
+        const lifetimeEnergyMeasurementRecord = JSON.parse(
+          JSON.stringify(measurementRecord),
+        ) as MeasurementRecord;
+        lifetimeEnergyMeasurementRecord.measurementType = "LifetimeEnergy";
+        lifetimeEnergyMeasurementRecord.unitType = "Wh";
+        lifetimeEnergyMeasurementRecord.measurements = [
+          {
+            time: timestamp || now.toISOString(),
+            measurement: le.lifetimeEnergy,
+          },
+        ];
+        lifetimeEnergyMeasurements.push(lifetimeEnergyMeasurementRecord);
+      }
+    });
+    return lifetimeEnergyMeasurements;
   }
 }

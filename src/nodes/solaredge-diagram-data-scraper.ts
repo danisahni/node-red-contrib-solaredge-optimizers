@@ -91,6 +91,22 @@ module.exports = function (RED: NodeAPI) {
           const measurements: Measurements = await scraper.getMeasurements(
             measurementRequestData,
           );
+          // collect lifetime energy data if selected
+          if (node.collectLifetimeEnergy) {
+            const logicalLayout = await scraper.getLogicalLayout();
+            const lifetimeEnergy = await scraper.getLifetimeEnergy();
+            const mappedLifetimeEnergy =
+              scraper.mapLifetimeEnergyIdsAndSerialNumbers(
+                lifetimeEnergy,
+                logicalLayout,
+              );
+            const lifetimeEnergyMeasurements =
+              scraper.createLifetimeEnergyMeasurements(
+                mappedLifetimeEnergy,
+                measurements,
+              );
+            measurements.push(...lifetimeEnergyMeasurements);
+          }
           // convert time to ISO string if UTC is selected
           if (node.timeZoneSettings === "UTC") {
             measurements.forEach((m) => {
@@ -99,7 +115,6 @@ module.exports = function (RED: NodeAPI) {
               });
             });
           }
-
           // format for InfluxDB if selected
           if (node.formatForInfluxDb && node.influxDbMeasurement) {
             const influxFormattedMeasurements =

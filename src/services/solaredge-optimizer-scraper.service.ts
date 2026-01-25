@@ -167,7 +167,7 @@ export class SolarEdgeOptimizerScraperService {
   /**
    * Get lifetime energy data using authenticated API
    */
-  async getLifeTimeEnergy(): Promise<any> {
+  async getLifetimeEnergy(): Promise<any> {
     try {
       const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/energy?timeUnit=ALL`;
       const response = await this.api.post(
@@ -185,7 +185,7 @@ export class SolarEdgeOptimizerScraperService {
 
   async requestAllData(): Promise<SolarEdgeOptimizerData[]> {
     const solarSite = await this.requestSolarEdgeSite();
-    const lifeTimeEnergy = await this.getLifeTimeEnergy();
+    const lifetimeEnergy = await this.getLifetimeEnergy();
 
     // Collect all optimizer IDs first
     const optimizerTasks: Array<{
@@ -210,9 +210,9 @@ export class SolarEdgeOptimizerScraperService {
       if (result.status === "fulfilled" && result.value !== null) {
         const info = result.value;
         // Life time energy adding
-        if (lifeTimeEnergy[optimizerId]) {
+        if (lifetimeEnergy[optimizerId]) {
           info.lifetime_energy =
-            parseFloat(lifeTimeEnergy[optimizerId].unscaledEnergy) / 1000;
+            parseFloat(lifetimeEnergy[optimizerId].unscaledEnergy) / 1000;
         }
         data.push(info);
       } else if (result.status === "rejected") {
