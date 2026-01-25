@@ -4,7 +4,7 @@ import { Measurements } from "./solaredge-diagram-scraper-service/models/measure
 export class InfluxDbUtils {
   static convertToInflux(
     data: OptimizerData[],
-    measurement: string
+    measurement: string,
   ): InfluxDbEntry[] {
     const influxData: InfluxDbEntry[] = [];
 
@@ -30,7 +30,7 @@ export class InfluxDbUtils {
 
   static formatMeasurementsForInfluxDb(
     measurements: Measurements,
-    influxMeasurementName: string
+    influxMeasurementName: string,
   ): InfluxDbEntry[] {
     // Group by device and timestamp
     const groupedData = new Map<
@@ -51,7 +51,6 @@ export class InfluxDbUtils {
       const tags: Record<string, string> = {
         itemType: record.device.itemType,
         deviceName: record.deviceName,
-        timeUnitType: record.timeUnitType,
       };
 
       // Add device-specific tags if present
