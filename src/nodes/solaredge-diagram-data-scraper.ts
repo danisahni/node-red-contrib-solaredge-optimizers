@@ -1,14 +1,8 @@
 import { NodeAPI, NodeMessage, NodeMessageInFlow, Node } from "node-red";
 import { SolarEdgeDiagramDataScraperConfig } from "../models/types";
-import { SolarEdgeApiService } from "../services/solaredge-api.service";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
 import { SolarEdgeDiagramScraperService } from "../services/solaredge-diagram-scraper-service/solaredege-diagram-scraper-service";
-import {
-  AnyParameter,
-  ItemType,
-  MeasurementRequestData,
-  SiteNode,
-} from "../models";
+import { AnyParameter, ItemType, MeasurementRequestData } from "../models";
 import { Measurements } from "../services/solaredge-diagram-scraper-service/models/measurements";
 
 module.exports = function (RED: NodeAPI) {
@@ -20,6 +14,7 @@ module.exports = function (RED: NodeAPI) {
 
     this.siteId = config.siteId;
     this.timeZoneSettings = config.timeZoneSettings;
+    this.collectLifetimeEnergy = config.collectLifetimeEnergy;
     this.formatForInfluxDb = config.formatForInfluxDb;
     this.influxDbMeasurement = config.influxDbMeasurement;
     this.selectedItemTypes = config.selectedItemTypes || [];

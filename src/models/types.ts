@@ -21,7 +21,7 @@ export interface SolarEdgeOptimizersConfig extends NodeDef {
 export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
   siteId: string;
   timeZoneSettings: "Local" | "UTC";
-  collectAdditionalInfo: boolean;
+  collectLifetimeEnergy: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
   selectedItemTypes?: ItemType[];
@@ -46,7 +46,7 @@ export interface SolarEdgeDiagramDataScraperNode extends Node {
   siteId: string;
   timeUnit: string;
   timeZoneSettings: "Local" | "UTC";
-  collectAdditionalInfo: boolean;
+  collectLifetimeEnergy: boolean;
   formatForInfluxDb: boolean;
   influxDbMeasurement: string;
   selectedItemTypes: ItemType[];

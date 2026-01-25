@@ -11,6 +11,7 @@
         },
       },
       timeZoneSettings: { value: "UTC" },
+      collectLifetimeEnergy: { value: false },
       formatForInfluxDb: { value: true },
       influxDbMeasurement: {
         value: "optimizers",
@@ -319,6 +320,12 @@
       <option value="UTC">UTC</option>
       <option value="Local">Local</option>
     </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-collectLifetimeEnergy">
+      Collect Lifetime Energy
+    </label>
+    <input type="checkbox" id="node-input-collectLifetimeEnergy" />
   </div>
   <div class="form-row">
     <label for="node-input-formatForInfluxDb"> Format for InfluxDB </label>
