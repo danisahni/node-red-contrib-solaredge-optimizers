@@ -12,13 +12,13 @@ interface ChartDataResponse {
 }
 
 export class SolarEdgeOptimizerScraperService {
-  private siteid: string;
+  private siteId: string;
   private username: string;
   private password: string;
   private api: AxiosInstance;
 
   constructor(siteid: string, username: string, password: string) {
-    this.siteid = siteid;
+    this.siteId = siteid;
     this.username = username;
     this.password = password;
 
@@ -51,6 +51,7 @@ export class SolarEdgeOptimizerScraperService {
         },
       });
       x_csrf_token = response.headers["x-csrf-token"];
+      this.api.defaults.headers.common["X-CSRF-TOKEN"] = x_csrf_token;
     } catch (error) {
       console.log(error);
     }
@@ -118,15 +119,15 @@ export class SolarEdgeOptimizerScraperService {
   }
 
   async requestSolarEdgeSite(): Promise<SolarEdgeSite> {
-    const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteid}/layout/logical`;
+    const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/logical`;
     const response = await this.api.get(url);
     return new SolarEdgeSite(response.data);
   }
 
   async requestSystemData(
-    itemId: string
+    itemId: string,
   ): Promise<SolarEdgeOptimizerData | null> {
-    const url = `https://monitoringpublic.solaredge.com/solaredge-web/p/publicSystemData?reporterId=${itemId}&type=panel&activeTab=0&fieldId=${this.siteid}&isPublic=true&locale=en_US`;
+    const url = `https://monitoringpublic.solaredge.com/solaredge-web/p/publicSystemData?reporterId=${itemId}&type=panel&activeTab=0&fieldId=${this.siteId}&isPublic=true&locale=en_US`;
 
     try {
       const response = await this.api.get(url);
@@ -146,11 +147,11 @@ export class SolarEdgeOptimizerScraperService {
         }
       } else {
         console.error(
-          `Error with sending request. Status code: ${response.status}`
+          `Error with sending request. Status code: ${response.status}`,
         );
         console.error(response.data);
         throw new Error(
-          `Problem sending request, status code ${response.status}: ${response.data}`
+          `Problem sending request, status code ${response.status}: ${response.data}`,
         );
       }
     } catch (error: any) {
@@ -158,7 +159,7 @@ export class SolarEdgeOptimizerScraperService {
       throw new Error(
         `Problem sending request, status code ${
           error.response?.status || 500
-        }: ${error.response?.data || error.message}`
+        }: ${error.response?.data || error.message}`,
       );
     }
   }
@@ -168,13 +169,13 @@ export class SolarEdgeOptimizerScraperService {
    */
   async getLifeTimeEnergy(): Promise<any> {
     try {
-      const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteid}/layout/energy?timeUnit=ALL`;
+      const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/energy?timeUnit=ALL`;
       const response = await this.api.post(
         url,
         {},
         {
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
       return response.data;
     } catch (error) {
@@ -197,7 +198,7 @@ export class SolarEdgeOptimizerScraperService {
 
     // Execute all requests in parallel
     const results = await Promise.allSettled(
-      optimizerTasks.map((task) => task.promise)
+      optimizerTasks.map((task) => task.promise),
     );
 
     // Process results
@@ -217,7 +218,7 @@ export class SolarEdgeOptimizerScraperService {
       } else if (result.status === "rejected") {
         console.warn(
           `⚠️ Failed to fetch data for optimizer ${optimizerId}:`,
-          result.reason
+          result.reason,
         );
       }
     }
@@ -228,7 +229,7 @@ export class SolarEdgeOptimizerScraperService {
     itemId: string,
     starttime?: Date | number | null,
     endtime?: Date | number | null,
-    parameter: string = "Power"
+    parameter: string = "Power",
   ): Promise<{ [date: string]: number }> {
     let starttimeMs: number;
     let endtimeMs: number;
@@ -256,7 +257,7 @@ export class SolarEdgeOptimizerScraperService {
       starttimeMs = starttime;
     }
 
-    const url = `https://monitoring.solaredge.com/solaredge-web/p/chartData?reporterId=${itemId}&fieldId=${this.siteid}&reporterType=&startDate=${starttimeMs}&endDate=${endtimeMs}&uom=W&parameterName=${parameter}`;
+    const url = `https://monitoring.solaredge.com/solaredge-web/p/chartData?reporterId=${itemId}&fieldId=${this.siteId}&reporterType=&startDate=${starttimeMs}&endDate=${endtimeMs}&uom=W&parameterName=${parameter}`;
 
     // Use authenticated request with cooldown and retry logic
     const response = await this.api.get(url);

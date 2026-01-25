@@ -15,6 +15,12 @@ import {
   TreeItem,
 } from "../../models";
 import { Measurements } from "./models/measurements";
+import { LifetimeEnergyResponse } from "./models/lifetime-energy-response";
+import {
+  LogicalLayoutResponse,
+  LogicalTreeNode,
+  LogicalTreeNodeData,
+} from "./models/logical-layout-response";
 
 export class SolarEdgeDiagramScraperService {
   private siteId: string;
@@ -47,6 +53,8 @@ export class SolarEdgeDiagramScraperService {
       if (response.status !== 200) {
         throw new Error(`Login failed: HTTP ${response.status} `);
       }
+      this.api.defaults.headers.common["X-CSRF-TOKEN"] =
+        response.headers["x-csrf-token"];
       await this.bootstrapSession();
     } catch (error: any) {
       throw new Error(`Login failed: ${error.message}`);
@@ -136,11 +144,12 @@ export class SolarEdgeDiagramScraperService {
     });
     return data;
   }
+
   async getMeasurements(
     requestedMeasurements: MeasurementRequestData,
     startDate?: string,
     endDate?: string,
-  ) {
+  ): Promise<Measurements> {
     try {
       if (!startDate && !endDate) {
         const today = new Date();
@@ -160,5 +169,72 @@ export class SolarEdgeDiagramScraperService {
     } catch (error: any) {
       throw new Error(`getMeasurements failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Get lifetime energy data using authenticated API
+   */
+  async getLifeTimeEnergy(): Promise<LifetimeEnergyResponse> {
+    try {
+      const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/energy?timeUnit=ALL`;
+      const response = await this.api.post(
+        url,
+        {},
+        {
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+      return response.data as LifetimeEnergyResponse;
+    } catch (error: any) {
+      throw new Error(`getLifeTimeEnergy failed: ${error.message}`);
+    }
+  }
+  async getLogicalLayout(): Promise<LogicalLayoutResponse> {
+    try {
+      const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/logical`;
+      const response = await this.api.get(url);
+      return response.data as LogicalLayoutResponse;
+    } catch (error: any) {
+      throw new Error(`getLogicalLayout failed: ${error.message}`);
+    }
+  }
+  mapLifetimeEnergyIdsAndSerialNumbers(
+    lifeTimeEnergy: LifetimeEnergyResponse,
+    logicalLayout: LogicalLayoutResponse,
+  ) {
+    // flatten logical layout
+    const nodes: LogicalTreeNodeData[] = [];
+    const traverseNodes = (node: LogicalTreeNode) => {
+      if (node.data) {
+        nodes.push(node.data);
+      }
+      if (node.children.length > 0) {
+        node.children.forEach((child) => traverseNodes(child));
+      }
+    };
+    traverseNodes(logicalLayout.logicalTree);
+    const lifetimeEnergyIds = Object.keys(lifeTimeEnergy);
+    const lifetimeEnergyMapped: {
+      id: string;
+      serialNumber: string | null;
+      name: string;
+      displayName: string;
+      type: string;
+      lifeTimeEnergy: number;
+    }[] = [];
+    lifetimeEnergyIds.forEach((reporterId) => {
+      const node = nodes.find((n) => n.id.toString() === reporterId);
+      if (node) {
+        lifetimeEnergyMapped.push({
+          id: reporterId,
+          serialNumber: node.serialNumber,
+          lifeTimeEnergy: lifeTimeEnergy[reporterId].unscaledEnergy,
+          name: node.name,
+          displayName: node.displayName,
+          type: node.type,
+        });
+      }
+    });
+    return lifetimeEnergyMapped;
   }
 }
