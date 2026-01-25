@@ -1,3 +1,23 @@
+<style>
+  .form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .form-row > label {
+    min-width: 160px;
+    margin-right: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .form-row input[type="text"],
+  .form-row input[type="password"],
+  .form-row input[type="checkbox"],
+  .form-row select {
+    max-width: 220px;
+    flex-shrink: 1;
+  }
+</style>
 <script src="./resources/node-red-contrib-solaredge-optimizers/parameters.js"></script>
 <script type="text/javascript">
   RED.nodes.registerType("solaredge-diagram-data-scraper", {
