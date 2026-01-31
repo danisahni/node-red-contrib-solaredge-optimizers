@@ -16,9 +16,3 @@ export interface LifetimeEnergyEntry {
 }
 
 export type LifetimeEnergyResponse = Record<string, LifetimeEnergyEntry>;
-
-export interface MappedLifetimeEnergyEntry {
-  id: string;
-  serialNumber: string | null;
-  lifetimeEnergy: number;
-}

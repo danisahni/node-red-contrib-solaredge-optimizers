@@ -95,15 +95,13 @@ module.exports = function (RED: NodeAPI) {
           if (node.collectLifetimeEnergy) {
             const logicalLayout = await scraper.getLogicalLayout();
             const lifetimeEnergy = await scraper.getLifetimeEnergy();
-            const mappedLifetimeEnergy =
-              scraper.mapLifetimeEnergyIdsAndSerialNumbers(
-                lifetimeEnergy,
-                logicalLayout,
-              );
             const lifetimeEnergyMeasurements =
               scraper.createLifetimeEnergyMeasurements(
-                mappedLifetimeEnergy,
+                lifetimeEnergy,
+                logicalLayout,
+                node.selectedItemTypes,
                 measurements,
+                true,
               );
             measurements.push(...lifetimeEnergyMeasurements);
           }

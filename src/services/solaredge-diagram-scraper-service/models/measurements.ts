@@ -13,7 +13,7 @@ export interface Device {
   itemType: string; // e.g., "OPTIMIZER"
   id: string;
   identifier: string;
-  connectedToInverter: string;
+  connectedToInverter?: string;
 }
 
 /**

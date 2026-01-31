@@ -122,12 +122,12 @@ async function mainDiagramScraper() {
   // const fileContent = fs.readFileSync("./tree.json", "utf-8");
   // const tree = JSON.parse(fileContent) as SolarEdgeTree;
   const selectedItemTypes: ItemType[] = [
-    // "SITE",
+    "SITE",
     "INVERTER",
-    // "STRING",
-    // "OPTIMIZER",
-    // "BATTERY",
-    // "METER",
+    "STRING",
+    "OPTIMIZER",
+    "BATTERY",
+    "METER",
   ];
 
   const measurementTypes: { key: ItemType; parameters: AnyParameter[] }[] = [
@@ -184,26 +184,33 @@ async function mainDiagramScraper() {
   if (collectLifetimeEnergy) {
     const logicalLayout = await scraper.getLogicalLayout();
     const lifetimeEnergy = await scraper.getLifetimeEnergy();
-    const mappedLifetimeEnergy = scraper.mapLifetimeEnergyIdsAndSerialNumbers(
-      lifetimeEnergy,
-      logicalLayout,
-    );
+    const lifetimeEnergyMeasurementsTest =
+      scraper.createLifetimeEnergyMeasurements(
+        lifetimeEnergy,
+        logicalLayout,
+        selectedItemTypes,
+      );
     fs.writeFileSync(
-      "./mapped-lifetime-energy.json",
-      JSON.stringify(mappedLifetimeEnergy, null, 2),
+      "./lifetime-energy-measurements-test.json",
+      JSON.stringify(lifetimeEnergyMeasurementsTest, null, 2),
     );
     fs.writeFileSync(
       "./logical-layout.json",
       JSON.stringify(logicalLayout, null, 2),
     );
     const lifetimeEnergyMeasurements = scraper.createLifetimeEnergyMeasurements(
-      mappedLifetimeEnergy,
+      lifetimeEnergy,
+      logicalLayout,
+      selectedItemTypes,
       measurements,
+    );
+    fs.writeFileSync(
+      "./lifetime-energy-measurements.json",
+      JSON.stringify(lifetimeEnergyMeasurements, null, 2),
     );
     measurements.push(...lifetimeEnergyMeasurements);
   }
   console.log(measurements.length);
-
   const influxFormattedMeasurements =
     InfluxDbUtils.formatMeasurementsForInfluxDb(
       measurements,

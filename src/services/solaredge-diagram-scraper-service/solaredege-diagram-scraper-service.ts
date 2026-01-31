@@ -4,7 +4,6 @@ import axios from "axios";
 import type { AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { Cookie, CookieJar } from "tough-cookie";
-import fs from "fs";
 import {
   AnyParameter,
   ItemType,
@@ -19,10 +18,7 @@ import {
   MeasurementRecord,
   Measurements,
 } from "./models/measurements";
-import {
-  LifetimeEnergyResponse,
-  MappedLifetimeEnergyEntry,
-} from "./models/lifetime-energy-response";
+import { LifetimeEnergyResponse } from "./models/lifetime-energy-response";
 import {
   LogicalLayoutResponse,
   LogicalTreeNode,
@@ -204,14 +200,27 @@ export class SolarEdgeDiagramScraperService {
     }
   }
 
-  mapLifetimeEnergyIdsAndSerialNumbers(
+  createLifetimeEnergyMeasurements(
     lifetimeEnergy: LifetimeEnergyResponse,
     logicalLayout: LogicalLayoutResponse,
-  ): MappedLifetimeEnergyEntry[] {
+    selectedItemTypes: ItemType[],
+    measurements?: Measurements,
+    addToNearestTimestamp: boolean = true,
+  ): Measurements {
+    const itemTypeMapping: { [key: string]: ItemType } = {
+      INVERTER_1PHASE: "INVERTER",
+      INVERTER_3PHASE: "INVERTER",
+      STRING: "STRING",
+      POWER_BOX: "OPTIMIZER",
+    };
+
     // flatten logical layout
     const nodes: LogicalTreeNodeData[] = [];
     const traverseNodes = (node: LogicalTreeNode) => {
-      if (node.data) {
+      if (
+        node.data &&
+        selectedItemTypes.includes(itemTypeMapping[node.data.type] || "UNKNOWN")
+      ) {
         nodes.push(node.data);
       }
       if (node.children.length > 0) {
@@ -222,41 +231,28 @@ export class SolarEdgeDiagramScraperService {
     traverseNodes(logicalLayout.logicalTree);
 
     const lifetimeEnergyIds = Object.keys(lifetimeEnergy);
-    const lifetimeEnergyMapped: MappedLifetimeEnergyEntry[] = [];
+    const lifetimeEnergyMeasurements: Measurements = [];
+
+    const time = this.formatDateWithTimezone(new Date());
 
     lifetimeEnergyIds.forEach((reporterId) => {
       const node = nodes.find((n) => n.id.toString() === reporterId);
-      if (node) {
-        lifetimeEnergyMapped.push({
-          id: reporterId,
-          serialNumber: node.serialNumber,
-          lifetimeEnergy: lifetimeEnergy[reporterId].unscaledEnergy,
-        });
-      }
-    });
-    return lifetimeEnergyMapped;
-  }
-
-  createLifetimeEnergyMeasurements(
-    mappedLifetimeEnergy: MappedLifetimeEnergyEntry[],
-    measurements: Measurements,
-    addToNearestTimestamp: boolean = true,
-  ): Measurements {
-    const now = new Date();
-    const lifetimeEnergyMeasurements: Measurements = [];
-    mappedLifetimeEnergy.forEach((le) => {
+      if (!node) return;
+      const value = lifetimeEnergy[reporterId].unscaledEnergy;
+      if (value === null || value === undefined) return;
       let measurementRecord: MeasurementRecord | undefined;
-      if (le.type === "STRING") {
-        measurementRecord = measurements.find(
-          (mr) => mr.deviceName === le.name,
+      if (node.type === "STRING") {
+        // find measurement record by name (as blueprint)
+        measurementRecord = measurements?.find(
+          (mr) => mr.deviceName === node.name,
         );
-        // find measurement record by name
       } else {
-      // find measurment record with same serial number (as blueprint)
-        measurementRecord = measurements.find(
-        (mr) => mr.device.id === le.serialNumber,
-      );
+        // find measurement record with same serial number (as blueprint)
+        measurementRecord = measurements?.find(
+          (mr) => mr.device.id === node.serialNumber,
+        );
       }
+      let lifetimeEnergyMeasurementRecord: MeasurementRecord | undefined;
       if (measurementRecord) {
         let timestamp: string = "";
         if (addToNearestTimestamp) {
@@ -282,19 +278,40 @@ export class SolarEdgeDiagramScraperService {
           }
         }
 
-        const lifetimeEnergyMeasurementRecord = JSON.parse(
+        lifetimeEnergyMeasurementRecord = JSON.parse(
           JSON.stringify(measurementRecord),
         ) as MeasurementRecord;
         lifetimeEnergyMeasurementRecord.measurementType = "LIFETIME_ENERGY";
         lifetimeEnergyMeasurementRecord.unitType = "WH";
+        lifetimeEnergyMeasurementRecord.timeUnitType = "";
         lifetimeEnergyMeasurementRecord.measurements = [
           {
-            time: timestamp || this.formatDateWithTimezone(now),
-            measurement: le.lifetimeEnergy,
+            time: timestamp || time,
+            measurement: value,
           },
         ];
-        lifetimeEnergyMeasurements.push(lifetimeEnergyMeasurementRecord);
+      } else {
+        // use data from logical layout to create measurement record
+        lifetimeEnergyMeasurementRecord = {
+          device: {
+            itemType: itemTypeMapping[node.type] || "UNKNOWN",
+            id: node.serialNumber || "",
+            identifier: node.serialNumber?.split("-")[0] || "",
+            // connectedToInverter: "",
+          },
+          measurementType: "LIFETIME_ENERGY",
+          unitType: "WH",
+          deviceName: node.name,
+          timeUnitType: "",
+          measurements: [
+            {
+              time: time,
+              measurement: value,
+            },
+          ],
+        };
       }
+      lifetimeEnergyMeasurements.push(lifetimeEnergyMeasurementRecord);
     });
     return lifetimeEnergyMeasurements;
   }
