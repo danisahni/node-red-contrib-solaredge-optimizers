@@ -1,0 +1,89 @@
+[
+  {
+    "id": "inject1",
+    "type": "inject",
+    "z": "0ff13fa6aa614552",
+    "name": "Every Hour",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "3600",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 250,
+    "y": 460,
+    "wires": [["diagramNode1"]]
+  },
+  {
+    "id": "diagramNode1",
+    "type": "solaredge-diagram-data-scraper",
+    "z": "0ff13fa6aa614552",
+    "siteId": "12345",
+    "timeZoneSettings": "UTC",
+    "formatForInfluxDb": true,
+    "influxDbMeasurement": "optimizers",
+    "selectedItemTypes": ["OPTIMIZER"],
+    "selectedSiteParameters": [],
+    "selectedInverterParameters": [],
+    "selectedStringParameters": [],
+    "selectedOptimizerParameters": [
+      "PRODUCTION_ENERGY",
+      "PRODUCTION_POWER",
+      "OPTIMIZER_OUTPUT_VOLTAGE",
+      "MODULE_OUTPUT_VOLTAGE",
+      "MODULE_CURRENT"
+    ],
+    "selectedMeterParameters": [],
+    "selectedBatteryParameters": [],
+    "x": 500,
+    "y": 460,
+    "wires": [["influxBatch1"]]
+  },
+  {
+    "id": "influxBatch1",
+    "type": "influxdb batch",
+    "z": "0ff13fa6aa614552",
+    "influxdb": "influxConfig1",
+    "precision": "",
+    "retentionPolicy": "",
+    "name": "",
+    "database": "database",
+    "precisionV18FluxV20": "ms",
+    "retentionPolicyV18Flux": "",
+    "org": "your_organization",
+    "bucket": "test_bucket",
+    "x": 770,
+    "y": 460,
+    "wires": []
+  },
+  {
+    "id": "influxConfig1",
+    "type": "influxdb",
+    "hostname": "127.0.0.1",
+    "port": "8086",
+    "protocol": "http",
+    "database": "database",
+    "name": "Your InfluxDB",
+    "usetls": false,
+    "tls": "",
+    "influxdbVersion": "2.0",
+    "url": "http://localhost:8086",
+    "timeout": "10",
+    "rejectUnauthorized": false
+  },
+  {
+    "id": "d3da48a559a7d588",
+    "type": "global-config",
+    "env": [],
+    "modules": {
+      "node-red-contrib-solaredge-optimizers": "0.4.0",
+      "node-red-contrib-influxdb": "0.7.0"
+    }
+  }
+]

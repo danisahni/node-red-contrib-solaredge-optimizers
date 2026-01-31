@@ -1,0 +1,406 @@
+<style>
+  .form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .form-row > label {
+    min-width: 160px;
+    margin-right: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .form-row input[type="text"],
+  .form-row input[type="password"],
+  .form-row input[type="checkbox"],
+  .form-row select {
+    max-width: 220px;
+    flex-shrink: 1;
+  }
+</style>
+<script src="./resources/node-red-contrib-solaredge-optimizers/parameters.js"></script>
+<script type="text/javascript">
+  RED.nodes.registerType("solaredge-diagram-data-scraper", {
+    category: "function",
+    color: "#a6bbcf",
+    defaults: {
+      siteId: {
+        value: "",
+        validate: function (value) {
+          return value.length > 0;
+        },
+      },
+      timeZoneSettings: { value: "UTC" },
+      collectLifetimeEnergy: { value: false },
+      formatForInfluxDb: { value: true },
+      influxDbMeasurement: {
+        value: "optimizers",
+        validate: function (value) {
+          return value.length > 0;
+        },
+      },
+      selectedItemTypes: { value: [] },
+      selectedSiteParameters: { value: [] },
+      selectedInverterParameters: { value: [] },
+      selectedStringParameters: { value: [] },
+      selectedOptimizerParameters: { value: [] },
+      selectedMeterParameters: { value: [] },
+      selectedBatteryParameters: { value: [] },
+    },
+    credentials: {
+      username: { type: "text" },
+      password: { type: "password" },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "font-awesome/fa-sun-o",
+    label: function () {
+      return this.name || "solaredge-diagram-data-scraper";
+    },
+    oneditprepare: function () {
+      const self = this;
+
+      $("#node-input-formatForInfluxDb").change(function () {
+        if ($("#node-input-formatForInfluxDb").is(":checked")) {
+          $("#influxDbMeasurement-form-row").show();
+        } else {
+          $("#influxDbMeasurement-form-row").hide();
+        }
+      });
+
+      // Initialize parameter tabs
+      $("#param-tabs-content").children().hide();
+
+      const tabs = RED.tabs.create({
+        id: "param-tabs",
+        onchange: function (tab) {
+          $("#param-tabs-content").children().hide();
+          $("#" + tab.id).show();
+        },
+      });
+
+      // Reusable function to create checkboxes for a parameter type
+      function createCheckboxes(
+        enumKey,
+        containerSelector,
+        selectedKey,
+        idPrefix,
+      ) {
+        const defs = window.SOLAREDGE_ENUMS || {};
+        const items = defs[enumKey] || [];
+        const selectedItems = Array.isArray(self[selectedKey])
+          ? self[selectedKey]
+          : [];
+        const $container = $(containerSelector);
+        $container.empty();
+
+        // Add Select/Deselect All toggle
+        const toggleId = `toggle-${idPrefix}`;
+        const $toggleRow = $(`
+          <div style="margin-bottom: 10px;">
+            <label style="display: inline-block; width: auto; cursor: pointer;">
+              <input type="checkbox" id="${toggleId}" style="width: auto; margin-right: 5px;" />
+              <span class="toggle-label">Select All</span>
+            </label>
+          </div>
+        `);
+
+        const $toggleCheckbox = $toggleRow.find(`#${toggleId}`);
+        const $toggleLabel = $toggleRow.find(".toggle-label");
+
+        // Function to update toggle state based on selections
+        function updateToggleState() {
+          const allCheckboxes = $container.find(
+            "input[type=checkbox][data-id]",
+          );
+          const checkedCheckboxes = allCheckboxes.filter(":checked");
+          const totalCount = allCheckboxes.length;
+          const checkedCount = checkedCheckboxes.length;
+
+          if (checkedCount === 0) {
+            // Nothing selected
+            $toggleCheckbox.prop("checked", false);
+            $toggleCheckbox.prop("indeterminate", false);
+            $toggleLabel.text("Select All");
+          } else if (checkedCount === totalCount) {
+            // All selected
+            $toggleCheckbox.prop("checked", true);
+            $toggleCheckbox.prop("indeterminate", false);
+            $toggleLabel.text("Deselect All");
+          } else {
+            // Partial selection
+            $toggleCheckbox.prop("checked", false);
+            $toggleCheckbox.prop("indeterminate", true);
+            $toggleLabel.text("Select All");
+          }
+        }
+
+        // Toggle all checkboxes
+        $toggleCheckbox.on("change", function () {
+          const shouldCheck = $(this).is(":checked");
+          $container
+            .find("input[type=checkbox][data-id]")
+            .prop("checked", shouldCheck);
+          updateToggleState();
+        });
+
+        $container.append($toggleRow);
+
+        // Create checkbox grid
+        const $checkboxGrid = $("<div></div>").css({
+          display: "grid",
+          "grid-template-columns": "1fr 1fr",
+          gap: "5px",
+        });
+
+        items.forEach((item) => {
+          const checkboxId = `${idPrefix}-${item}`;
+          const $row = $(`
+            <div style="margin: 2px 0;">
+              <label style="display: inline-block; width: auto;">
+                <input type="checkbox" id="${checkboxId}" data-id="${item}" style="width: auto; margin-right: 5px;" />
+                ${item}
+              </label>
+            </div>
+          `);
+
+          $row
+            .find("input[type=checkbox]")
+            .prop("checked", selectedItems.includes(item));
+          $checkboxGrid.append($row);
+        });
+
+        $container.append($checkboxGrid);
+
+        // Add change listener to individual checkboxes to update toggle
+        $checkboxGrid.on("change", "input[type=checkbox]", function () {
+          updateToggleState();
+        });
+
+        // Initialize toggle state
+        updateToggleState();
+      }
+
+      // Function to update visible tabs based on selected ItemTypes
+      function updateVisibleTabs() {
+        const selectedTypes = $(
+          "#node-input-item-types-container input[type=checkbox]:checked",
+        )
+          .map(function () {
+            return $(this).data("id");
+          })
+          .get();
+
+        // Remove all existing tabs
+        $("#param-tabs").empty();
+
+        // Hide the entire parameter section if no types selected
+        if (selectedTypes.length === 0) {
+          $("#param-tabs-content").hide();
+          $("#param-tabs").parent().hide();
+          $("label:contains('Parameters')").parent().hide();
+          return;
+        } else {
+          $("#param-tabs-content").show();
+          $("#param-tabs").parent().show();
+          $("label:contains('Parameters')").parent().show();
+        }
+
+        // Hide all tab content
+        $("#param-tabs-content").children().hide();
+
+        let firstTabId = null;
+        // Add tabs for selected ItemTypes
+        selectedTypes.forEach(function (itemType) {
+          const tabId = `param-tab-${itemType.toLowerCase()}`;
+          if (tabId) {
+            const label = itemType;
+            tabs.addTab({ id: tabId, label: label });
+            if (!firstTabId) firstTabId = tabId;
+          }
+        });
+
+        // Show first available tab
+        if (firstTabId) {
+          $("#" + firstTabId).show();
+        }
+      }
+
+      // Create checkboxes for all parameter types
+      createCheckboxes(
+        "ITEM_TYPES",
+        "#node-input-item-types-container",
+        "selectedItemTypes",
+        "node-input-item-type",
+      );
+
+      // Add change handler to ItemTypes checkboxes
+      $("#node-input-item-types-container").on(
+        "change",
+        "input[type=checkbox]",
+        function () {
+          updateVisibleTabs();
+        },
+      );
+
+      createCheckboxes(
+        "SITE_PARAMETERS",
+        "#node-input-site-parameters-container",
+        "selectedSiteParameters",
+        "node-input-site-parameter",
+      );
+      createCheckboxes(
+        "INVERTER_PARAMETERS",
+        "#node-input-inverter-parameters-container",
+        "selectedInverterParameters",
+        "node-input-inverter-parameter",
+      );
+      createCheckboxes(
+        "STRING_PARAMETERS",
+        "#node-input-string-parameters-container",
+        "selectedStringParameters",
+        "node-input-string-parameter",
+      );
+      createCheckboxes(
+        "OPTIMIZER_PARAMETERS",
+        "#node-input-optimizer-parameters-container",
+        "selectedOptimizerParameters",
+        "node-input-optimizer-parameter",
+      );
+      createCheckboxes(
+        "METER_PARAMETERS",
+        "#node-input-meter-parameters-container",
+        "selectedMeterParameters",
+        "node-input-meter-parameter",
+      );
+      createCheckboxes(
+        "BATTERY_PARAMETERS",
+        "#node-input-battery-parameters-container",
+        "selectedBatteryParameters",
+        "node-input-battery-parameter",
+      );
+
+      // Initialize visible tabs based on selected ItemTypes
+      updateVisibleTabs();
+    },
+    oneditsave: function () {
+      // Reusable function to save selected checkboxes
+      function saveSelectedCheckboxes(containerSelector) {
+        return $(containerSelector + " input[type=checkbox]:checked")
+          .map(function () {
+            return $(this).data("id");
+          })
+          .get();
+      }
+
+      this.selectedItemTypes = saveSelectedCheckboxes(
+        "#node-input-item-types-container",
+      );
+      this.selectedSiteParameters = saveSelectedCheckboxes(
+        "#node-input-site-parameters-container",
+      );
+      this.selectedInverterParameters = saveSelectedCheckboxes(
+        "#node-input-inverter-parameters-container",
+      );
+      this.selectedStringParameters = saveSelectedCheckboxes(
+        "#node-input-string-parameters-container",
+      );
+      this.selectedOptimizerParameters = saveSelectedCheckboxes(
+        "#node-input-optimizer-parameters-container",
+      );
+      this.selectedMeterParameters = saveSelectedCheckboxes(
+        "#node-input-meter-parameters-container",
+      );
+      this.selectedBatteryParameters = saveSelectedCheckboxes(
+        "#node-input-battery-parameters-container",
+      );
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="solaredge-diagram-data-scraper">
+  <div class="form-row">
+    <label for="node-input-username"><i class="fa fa-tag"></i> Username</label>
+    <input type="text" id="node-input-username" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-password"><i class="fa fa-tag"></i> Password</label>
+    <input type="password" id="node-input-password" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-siteId"><i class="fa fa-tag"></i> Site ID</label>
+    <input type="text" id="node-input-siteId" placeholder="Site ID" />
+  </div>
+
+  <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
+
+  <div class="form-row">
+    <label for="node-input-timeZoneSettings"> Time Zone Settings </label>
+    <select value="" id="node-input-timeZoneSettings" placeholder="choose">
+      <option value="UTC">UTC</option>
+      <option value="Local">Local</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-input-collectLifetimeEnergy">
+      Collect Lifetime Energy
+    </label>
+    <input type="checkbox" id="node-input-collectLifetimeEnergy" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-formatForInfluxDb"> Format for InfluxDB </label>
+    <input type="checkbox" id="node-input-formatForInfluxDb" />
+  </div>
+  <div class="form-row" id="influxDbMeasurement-form-row" class="fa fa-tag">
+    <label for="node-input-influxDbMeasurement"> InfluxDB Measurement </label>
+    <input
+      type="text"
+      id="node-input-influxDbMeasurement"
+      placeholder="Measurement"
+    />
+  </div>
+
+  <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
+
+  <div class="form-row">
+    <label>Types</label>
+    <div id="node-input-item-types-container" style="margin-left: 105px;"></div>
+  </div>
+
+  <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
+
+  <div class="form-row">
+    <label style="width: 100%; margin-bottom: 10px;">Parameters</label>
+  </div>
+  <div class="form-row">
+    <ul style="min-width: 600px; margin-bottom: 20px;" id="param-tabs"></ul>
+  </div>
+
+  <div
+    id="param-tabs-content"
+    style="min-height: 200px; border: 1px solid #ddd; padding: 10px; margin-bottom: 20px;"
+  >
+    <div id="param-tab-site" style="display:none">
+      <div id="node-input-site-parameters-container"></div>
+    </div>
+    <div id="param-tab-inverter" style="display:none">
+      <div id="node-input-inverter-parameters-container"></div>
+    </div>
+    <div id="param-tab-string" style="display:none">
+      <div id="node-input-string-parameters-container"></div>
+    </div>
+    <div id="param-tab-optimizer" style="display:none">
+      <div id="node-input-optimizer-parameters-container"></div>
+    </div>
+    <div id="param-tab-meter" style="display:none">
+      <div id="node-input-meter-parameters-container"></div>
+    </div>
+    <div id="param-tab-battery" style="display:none">
+      <div id="node-input-battery-parameters-container"></div>
+    </div>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="solaredge-diagram-data-scraper">
+  <p>Scrapes optimizer power data from solaredge cloud</p>
+</script>
