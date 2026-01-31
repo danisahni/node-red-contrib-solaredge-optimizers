@@ -278,18 +278,18 @@ export class SolarEdgeDiagramScraperService {
           if (best && bestDiff <= FIFTEEN_MINUTES) {
             timestamp = best.time;
           } else {
-            timestamp = now.toISOString();
+            timestamp = this.formatDateWithTimezone(now);
           }
         }
 
         const lifetimeEnergyMeasurementRecord = JSON.parse(
           JSON.stringify(measurementRecord),
         ) as MeasurementRecord;
-        lifetimeEnergyMeasurementRecord.measurementType = "LifetimeEnergy";
-        lifetimeEnergyMeasurementRecord.unitType = "Wh";
+        lifetimeEnergyMeasurementRecord.measurementType = "LIFETIME_ENERGY";
+        lifetimeEnergyMeasurementRecord.unitType = "WH";
         lifetimeEnergyMeasurementRecord.measurements = [
           {
-            time: timestamp || now.toISOString(),
+            time: timestamp || this.formatDateWithTimezone(now),
             measurement: le.lifetimeEnergy,
           },
         ];
@@ -297,5 +297,25 @@ export class SolarEdgeDiagramScraperService {
       }
     });
     return lifetimeEnergyMeasurements;
+  }
+
+  formatDateWithTimezone(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, "0");
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    // Timezone offset in Minuten (z. B. -60 für +01:00)
+    const tzOffsetMin = -date.getTimezoneOffset();
+    const sign = tzOffsetMin >= 0 ? "+" : "-";
+
+    const tzHours = pad(Math.floor(Math.abs(tzOffsetMin) / 60));
+    const tzMinutes = pad(Math.abs(tzOffsetMin) % 60);
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${tzHours}:${tzMinutes}`;
   }
 }
