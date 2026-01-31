@@ -245,10 +245,18 @@ export class SolarEdgeDiagramScraperService {
     const now = new Date();
     const lifetimeEnergyMeasurements: Measurements = [];
     mappedLifetimeEnergy.forEach((le) => {
+      let measurementRecord: MeasurementRecord | undefined;
+      if (le.type === "STRING") {
+        measurementRecord = measurements.find(
+          (mr) => mr.deviceName === le.name,
+        );
+        // find measurement record by name
+      } else {
       // find measurment record with same serial number (as blueprint)
-      const measurementRecord = measurements.find(
+        measurementRecord = measurements.find(
         (mr) => mr.device.id === le.serialNumber,
       );
+      }
       if (measurementRecord) {
         let timestamp: string = "";
         if (addToNearestTimestamp) {
