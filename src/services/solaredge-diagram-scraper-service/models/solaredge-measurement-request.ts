@@ -6,7 +6,6 @@ import { ItemType, AnyParameter } from "./parameters";
 export interface MeasurementDevice {
   itemType: ItemType;
   id?: string;
-  originalSerial?: string;
   identifier?: string;
   connectedToInverter?: string;
 }

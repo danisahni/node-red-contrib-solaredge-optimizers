@@ -56,10 +56,8 @@ export class InfluxDbUtils {
       // Add device-specific tags if present
       if (record.device.id) tags.deviceId = record.device.id;
       if (record.device.identifier) tags.identifier = record.device.identifier;
-      if (record.device.originalSerial)
-        tags.serialNumber = record.device.originalSerial;
-      if (record.device.connectedToInverter)
-        tags.connectedToInverter = record.device.connectedToInverter;
+      // if (record.device.connectedToInverter)
+      //   tags.connectedToInverter = record.device.connectedToInverter;
 
       // Process each measurement point
       record.measurements.forEach((point) => {

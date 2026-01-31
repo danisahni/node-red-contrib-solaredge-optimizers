@@ -12,7 +12,6 @@ export interface Measurement {
 export interface Device {
   itemType: string; // e.g., "OPTIMIZER"
   id: string;
-  originalSerial: string;
   identifier: string;
   connectedToInverter: string;
 }

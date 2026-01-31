@@ -4,7 +4,6 @@ export interface ItemId {
   itemType: ItemType;
   id?: string; // optional, not always present
   identifier?: string; // optional, not present for METER
-  originalSerial?: string;
   connectedToInverter?: string;
 }
 
