@@ -14,6 +14,7 @@
   "files": [
     "dist/",
     "resources/",
+    "examples/",
     "README.md",
     "LICENSE"
   ],
@@ -37,21 +38,21 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/danisahni/node-red-contrib-solaredge-optimizers"
+    "url": "git+https://github.com/danisahni/node-red-contrib-solaredge-optimizers.git"
   },
   "dependencies": {
-    "axios": "^1.13.4",
-    "axios-cookiejar-support": "^5.0.5",
-    "tough-cookie": "^5.1.2"
+    "axios": "^1.17.0",
+    "axios-cookiejar-support": "^7.0.0",
+    "tough-cookie": "^6.0.1"
   },
   "devDependencies": {
-    "@types/node": "^25.1.0",
+    "@types/node": "^25.9.2",
     "@types/node-red": "^1.3.5",
     "@types/tough-cookie": "^4.0.5",
     "copyfiles": "^2.4.1",
-    "dotenv": "^17.2.3",
-    "rimraf": "^6.1.2",
+    "dotenv": "^17.4.2",
+    "rimraf": "^6.1.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }
