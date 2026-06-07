@@ -1,19 +1,19 @@
 <style>
-  .form-row {
+  .se-form-row {
     display: flex;
     align-items: center;
     margin-bottom: 8px;
   }
-  .form-row > label {
+  .se-form-row > label {
     min-width: 160px;
     margin-right: 8px;
     white-space: nowrap;
     flex-shrink: 0;
   }
-  .form-row input[type="text"],
-  .form-row input[type="password"],
-  .form-row input[type="checkbox"],
-  .form-row select {
+  .se-form-row input[type="text"],
+  .se-form-row input[type="password"],
+  .se-form-row input[type="checkbox"],
+  .se-form-row select {
     max-width: 220px;
     flex-shrink: 1;
   }
@@ -319,39 +319,39 @@
 </script>
 
 <script type="text/html" data-template-name="solaredge-diagram-data-scraper">
-  <div class="form-row">
+  <div class="se-form-row">
     <label for="node-input-username"><i class="fa fa-tag"></i> Username</label>
     <input type="text" id="node-input-username" />
   </div>
-  <div class="form-row">
+  <div class="se-form-row">
     <label for="node-input-password"><i class="fa fa-tag"></i> Password</label>
     <input type="password" id="node-input-password" />
   </div>
-  <div class="form-row">
+  <div class="se-form-row">
     <label for="node-input-siteId"><i class="fa fa-tag"></i> Site ID</label>
     <input type="text" id="node-input-siteId" placeholder="Site ID" />
   </div>
 
   <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
 
-  <div class="form-row">
+  <div class="se-form-row">
     <label for="node-input-timeZoneSettings"> Time Zone Settings </label>
     <select value="" id="node-input-timeZoneSettings" placeholder="choose">
       <option value="UTC">UTC</option>
       <option value="Local">Local</option>
     </select>
   </div>
-  <div class="form-row">
+  <div class="se-form-row">
     <label for="node-input-collectLifetimeEnergy">
       Collect Lifetime Energy
     </label>
     <input type="checkbox" id="node-input-collectLifetimeEnergy" />
   </div>
-  <div class="form-row">
+  <div class="se-form-row">
     <label for="node-input-formatForInfluxDb"> Format for InfluxDB </label>
     <input type="checkbox" id="node-input-formatForInfluxDb" />
   </div>
-  <div class="form-row" id="influxDbMeasurement-form-row" class="fa fa-tag">
+  <div class="se-form-row" id="influxDbMeasurement-form-row">
     <label for="node-input-influxDbMeasurement"> InfluxDB Measurement </label>
     <input
       type="text"
@@ -362,17 +362,17 @@
 
   <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
 
-  <div class="form-row">
+  <div class="se-form-row">
     <label>Types</label>
     <div id="node-input-item-types-container" style="margin-left: 105px;"></div>
   </div>
 
   <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
 
-  <div class="form-row">
+  <div class="se-form-row">
     <label style="width: 100%; margin-bottom: 10px;">Parameters</label>
   </div>
-  <div class="form-row">
+  <div class="se-form-row">
     <ul style="min-width: 600px; margin-bottom: 20px;" id="param-tabs"></ul>
   </div>
 
