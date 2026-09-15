@@ -30,6 +30,8 @@ The node needs the following inputs as required parameters:
 - **Password**: The corresponding password
 - **Site ID**: The ID of your site.
 
+A basic example flow (without InfluxDB formatting) is provided in [examples/basicExample.json](./examples/basicExample.json).
+
 Furthermore, optional parameters can be specified:
 
 - **Time Zone Settings** \*: Choose the time zone of the output data timestamps:

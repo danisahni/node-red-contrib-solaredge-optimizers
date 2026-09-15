@@ -26,13 +26,20 @@
     },
     {
         "id": "22a89d726b941eed",
-        "type": "solaredge-optimizers",
+        "type": "solaredge-diagram-data-scraper",
         "z": "83d53046cb1c23b8",
         "siteId": "12345",
-        "timeUnit": "4",
-        "collectAdditionalInfo": true,
+        "timeZoneSettings": "UTC",
+        "collectLifetimeEnergy": false,
         "formatForInfluxDb": false,
         "influxDbMeasurement": "optimizers",
+        "selectedItemTypes": [
+            "OPTIMIZER"
+        ],
+        "selectedOptimizerParameters": [
+            "PRODUCTION_POWER",
+            "PRODUCTION_ENERGY"
+        ],
         "x": 400,
         "y": 280,
         "wires": [
