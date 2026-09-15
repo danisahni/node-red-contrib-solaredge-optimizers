@@ -1,4 +1,4 @@
-import { NodeAPI, NodeMessage, NodeMessageInFlow, Node } from "node-red";
+import { NodeAPI, NodeMessage, NodeMessageInFlow } from "node-red";
 import { SolarEdgeOptimizersConfig } from "../models/types";
 
 const DEPRECATION_MESSAGE =

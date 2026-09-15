@@ -1,4 +1,4 @@
-import { NodeAPI, NodeMessage, NodeMessageInFlow, Node } from "node-red";
+import { NodeAPI, NodeMessage, NodeMessageInFlow } from "node-red";
 import { SolarEdgeDiagramDataScraperConfig } from "../models/types";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
 import { SolarEdgeDiagramScraperService } from "../services/solaredge-diagram-scraper-service/solaredege-diagram-scraper-service";

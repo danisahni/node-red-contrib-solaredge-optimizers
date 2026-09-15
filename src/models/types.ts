@@ -1,4 +1,4 @@
-import { Node, NodeDef } from "node-red";
+import { NodeDef } from "node-red";
 import {
   BatteryParameter,
   InverterParameter,
@@ -31,25 +31,6 @@ export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
   selectedOptimizerParameters?: OptimizerParameter[];
   selectedMeterParameters?: MeterParameter[];
   selectedBatteryParameters?: BatteryParameter[];
-}
-
-export interface SolarEdgeOptimizersNode extends Node {
-  siteId: string;
-  timeUnit: string;
-  timeZoneSettings: "Local" | "UTC";
-  collectAdditionalInfo: boolean;
-  formatForInfluxDb: boolean;
-  influxDbMeasurement: string;
-}
-
-export interface SolarEdgeDiagramDataScraperNode extends Node {
-  siteId: string;
-  timeUnit: string;
-  timeZoneSettings: "Local" | "UTC";
-  collectLifetimeEnergy: boolean;
-  formatForInfluxDb: boolean;
-  influxDbMeasurement: string;
-  selectedItemTypes: ItemType[];
 }
 
 export interface InfluxDbEntry {
