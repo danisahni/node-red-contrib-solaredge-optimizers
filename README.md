@@ -14,29 +14,11 @@ npm install node-red-contrib-solaredge-optimizers
 
 There are two nodes available with two different approaches to scrape data from the solaredge monitoring platform. Their usage will be explained below
 
-### solaredge-optimizer node
+### solaredge-optimizers node (deprecated)
 
-This node uses the data from the layout page of the solaredge monitoring platform. Here, only the power is available as parameter.
+**This node is deprecated and no longer works.** SolarEdge retired the API endpoints it relied on (the old session-based login and the `layout`/`playbackData` endpoints); the node now only reports a deprecation error instead of data.
 
-The following data has to be provided in the node to access the optimizer data:
-
-- **Username**: Your username at https://monitoring.solaredge.com.
-- **Password**: The corresponding password
-- **Site ID**: The ID of your site.
-- **Time Interval**:
-  - Daily: Data of the current day
-  - Weekly: Data of the current/last week
-
-Optional inputs are:
-
-- **Time Zone Settings** \*: Choose the time zone of the output data timestamps:
-  - UTC: Returns timestamps in UTC time
-  - Local: Returns timestamps in local time zone
-- **Collect Additional Info**: Scrapes the monitoring page for additional info such as _description_, _type_, _serial number_ and _manufacturer_.
-- **Format For InfluxDB**: Returns the data in a format so that it can be directly sent to an InfluxDB batch node from [node-red-contrib-influxdb](https://flows.nodered.org/node/node-red-contrib-influxdb) (tested for InfluxDB 2.0). An example flow is provided in [examples/influxDbExample.json](./examples/influxDbExample.json). Note: The _Time Precision_ of the InfluxDb batch node has to be set to _"Milliseconds (ms)"_
-- **InfluxDB Measurement**: In case _Format for InfluxDB_ is checked, the name of the measurement.
-
-The node will return the power in Watt for each inverter, string and optimizer in 15 minute intervals for the selected time interval.
+Please migrate to the **solaredge-diagram-data-scraper** node below - select **OPTIMIZER** under _Types_ to get equivalent per-optimizer data. The diagram-data-scraper node covers everything this node did (and more), using SolarEdge's current authentication.
 
 ### solaredge-diagram-data-scraper Node
 
@@ -47,6 +29,8 @@ The node needs the following inputs as required parameters:
 - **Username**: Your username at https://monitoring.solaredge.com.
 - **Password**: The corresponding password
 - **Site ID**: The ID of your site.
+
+A basic example flow (without InfluxDB formatting) is provided in [examples/basicExample.json](./examples/basicExample.json).
 
 Furthermore, optional parameters can be specified:
 

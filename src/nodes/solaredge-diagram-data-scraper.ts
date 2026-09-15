@@ -1,4 +1,4 @@
-import { NodeAPI, NodeMessage, NodeMessageInFlow, Node } from "node-red";
+import { NodeAPI, NodeMessage, NodeMessageInFlow } from "node-red";
 import { SolarEdgeDiagramDataScraperConfig } from "../models/types";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
 import { SolarEdgeDiagramScraperService } from "../services/solaredge-diagram-scraper-service/solaredege-diagram-scraper-service";
@@ -93,12 +93,9 @@ module.exports = function (RED: NodeAPI) {
           );
           // collect lifetime energy data if selected
           if (node.collectLifetimeEnergy) {
-            const logicalLayout = await scraper.getLogicalLayout();
-            const lifetimeEnergy = await scraper.getLifetimeEnergy();
             const lifetimeEnergyMeasurements =
-              scraper.createLifetimeEnergyMeasurements(
-                lifetimeEnergy,
-                logicalLayout,
+              await scraper.getLifetimeEnergyMeasurements(
+                tree,
                 node.selectedItemTypes,
                 measurements,
                 true,
