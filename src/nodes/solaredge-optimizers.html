@@ -28,7 +28,7 @@
     outputs: 1,
     icon: "font-awesome/fa-sun-o",
     label: function () {
-      return this.name || "solaredge-optimizers";
+      return (this.name || "solaredge-optimizers") + " (deprecated)";
     },
     oneditprepare: function () {
       $("#node-input-formatForInfluxDb").change(function () {
@@ -43,6 +43,17 @@
 </script>
 
 <script type="text/html" data-template-name="solaredge-optimizers">
+  <div class="form-row">
+    <div
+      style="padding: 8px; border-left: 4px solid #a00; background: #fee;"
+    >
+      <strong>Deprecated:</strong> SolarEdge retired the API endpoints this
+      node relies on, so it no longer returns any data. Please replace it
+      with the <strong>solaredge-diagram-data-scraper</strong> node
+      (select <strong>OPTIMIZER</strong> under Types) - see the README for
+      migration details.
+    </div>
+  </div>
   <div class="form-row">
     <label for="node-input-username"><i class="fa fa-tag"></i> Username</label>
     <input type="text" id="node-input-username" />
@@ -89,6 +100,15 @@
   </div>
 </script>
 
-<script type="text/html" data-help-name="lower-case">
-  <p>Scrapes optimizer power data from solaredge cloud</p>
+<script type="text/html" data-help-name="solaredge-optimizers">
+  <p>
+    <strong>Deprecated:</strong> SolarEdge retired the API endpoints this
+    node relied on, so it no longer returns any data - it only reports a
+    deprecation error.
+  </p>
+  <p>
+    Please replace it with the <code>solaredge-diagram-data-scraper</code>
+    node (select <code>OPTIMIZER</code> under Types) - see the README for
+    migration details.
+  </p>
 </script>
