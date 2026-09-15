@@ -93,12 +93,9 @@ module.exports = function (RED: NodeAPI) {
           );
           // collect lifetime energy data if selected
           if (node.collectLifetimeEnergy) {
-            const logicalLayout = await scraper.getLogicalLayout();
-            const lifetimeEnergy = await scraper.getLifetimeEnergy();
             const lifetimeEnergyMeasurements =
-              scraper.createLifetimeEnergyMeasurements(
-                lifetimeEnergy,
-                logicalLayout,
+              await scraper.getLifetimeEnergyMeasurements(
+                tree,
                 node.selectedItemTypes,
                 measurements,
                 true,

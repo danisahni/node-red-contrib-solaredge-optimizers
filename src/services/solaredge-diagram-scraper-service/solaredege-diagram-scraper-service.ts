@@ -2,8 +2,11 @@
 
 import axios from "axios";
 import type { AxiosInstance } from "axios";
-import { wrapper } from "axios-cookiejar-support";
-import { Cookie, CookieJar } from "tough-cookie";
+import {
+  CognitoUser,
+  CognitoUserPool,
+  AuthenticationDetails,
+} from "amazon-cognito-identity-js";
 import {
   AnyParameter,
   ItemType,
@@ -18,12 +21,13 @@ import {
   MeasurementRecord,
   Measurements,
 } from "./models/measurements";
-import { LifetimeEnergyResponse } from "./models/lifetime-energy-response";
-import {
-  LogicalLayoutResponse,
-  LogicalTreeNode,
-  LogicalTreeNodeData,
-} from "./models/logical-layout-response";
+
+// SolarEdge ONE authenticates through this AWS Cognito user pool; the old
+// Spring-Security-based `j_username`/`j_password` login no longer grants
+// access to the /services/* JSON APIs (they now require a Cognito access
+// token), even though it still works for the legacy solaredge-web/p/* pages.
+const COGNITO_USER_POOL_ID = "eu-central-1_fVUTz39em";
+const COGNITO_CLIENT_ID = "ugfnsujd3384sshcjehaphlh3";
 
 export class SolarEdgeDiagramScraperService {
   private siteId: string;
@@ -36,9 +40,7 @@ export class SolarEdgeDiagramScraperService {
     this.username = username;
     this.password = password;
 
-    // Create axios instance with cookie jar support
-    const jar = new CookieJar();
-    this.api = wrapper(axios.create({ jar }));
+    this.api = axios.create();
 
     // Set default headers
     this.api.defaults.headers.common["User-Agent"] =
@@ -48,16 +50,34 @@ export class SolarEdgeDiagramScraperService {
 
   async login(): Promise<void> {
     try {
-      const url = "https://monitoring.solaredge.com/solaredge-apigw/api/login";
-      const params = new URLSearchParams();
-      params.append("j_username", this.username);
-      params.append("j_password", this.password);
-      const response = await this.api.post(url, params);
-      if (response.status !== 200) {
-        throw new Error(`Login failed: HTTP ${response.status} `);
-      }
-      this.api.defaults.headers.common["X-CSRF-TOKEN"] =
-        response.headers["x-csrf-token"];
+      const userPool = new CognitoUserPool({
+        UserPoolId: COGNITO_USER_POOL_ID,
+        ClientId: COGNITO_CLIENT_ID,
+      });
+      const cognitoUser = new CognitoUser({
+        Username: this.username,
+        Pool: userPool,
+      });
+      const authDetails = new AuthenticationDetails({
+        Username: this.username,
+        Password: this.password,
+      });
+
+      const accessToken = await new Promise<string>((resolve, reject) => {
+        cognitoUser.authenticateUser(authDetails, {
+          onSuccess: (result) => resolve(result.getAccessToken().getJwtToken()),
+          onFailure: (error) => reject(error),
+        });
+      });
+
+      const payload = JSON.parse(
+        Buffer.from(accessToken.split(".")[1], "base64").toString("utf-8"),
+      );
+      const userId = payload.uuid;
+
+      this.api.defaults.headers.common["Cookie"] =
+        `se_monitoring_auth=${accessToken}`;
+      this.api.defaults.headers.common["X-SE-User-ID"] = userId;
     } catch (error: any) {
       throw new Error(`Login failed: ${error.message}`);
     }
@@ -164,145 +184,173 @@ export class SolarEdgeDiagramScraperService {
     }
   }
 
-  async getLifetimeEnergy(): Promise<LifetimeEnergyResponse> {
-    try {
-      const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/energy?timeUnit=ALL`;
-      const response = await this.api.post(
-        url,
-        {},
-        {
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-      return response.data as LifetimeEnergyResponse;
-    } catch (error: any) {
-      throw new Error(`getLifetimeEnergy failed: ${error.message}`);
-    }
+  // SolarEdge retired the old bulk `apigw/.../layout/energy` (all reporterIds
+  // in one call) and `apigw/.../layout/logical` (reporterId -> serial mapping)
+  // endpoints. The /services/layout/* replacements report lifetime energy
+  // per device instead, so this now issues one request per SITE/INVERTER/
+  // OPTIMIZER item; no reporterId -> serial mapping is needed any more since
+  // the tree already carries real serial numbers. STRING, METER and BATTERY
+  // have no known per-device lifetime-energy endpoint yet, so they're skipped.
+  private static readonly LIFETIME_ENERGY_DEVICE_TYPES: {
+    itemType: ItemType;
+    urlSegment: string;
+    serialParam: string;
+  }[] = [
+    { itemType: "INVERTER", urlSegment: "inverters", serialParam: "inverter-serials" },
+    { itemType: "OPTIMIZER", urlSegment: "optimizers", serialParam: "optimizer-serials" },
+  ];
+
+  private async getSiteLifetimeEnergy(
+    startDate: string,
+    endDate: string,
+  ): Promise<number> {
+    const url =
+      `https://monitoring.solaredge.com/services/layout/energy/site/${this.siteId}` +
+      `?chart-time-unit=years&start-date=${startDate}&end-date=${endDate}&measurement-types=production`;
+    const response = await this.api.get(url);
+    return response.data.energy as number;
   }
 
-  async getLogicalLayout(): Promise<LogicalLayoutResponse> {
-    try {
-      const url = `https://monitoring.solaredge.com/solaredge-apigw/api/sites/${this.siteId}/layout/logical`;
-      const response = await this.api.get(url);
-      return response.data as LogicalLayoutResponse;
-    } catch (error: any) {
-      throw new Error(`getLogicalLayout failed: ${error.message}`);
-    }
+  private async getDeviceLifetimeEnergy(
+    urlSegment: string,
+    serialParam: string,
+    serial: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<number | null> {
+    const url =
+      `https://monitoring.solaredge.com/services/layout/energy-graph/site/${this.siteId}/${urlSegment}` +
+      `?chart-time-unit=years&start-date=${startDate}&end-date=${endDate}&${serialParam}=${encodeURIComponent(serial)}`;
+    const response = await this.api.get(url);
+    return response.data.totalEnergy ?? null;
   }
 
-  createLifetimeEnergyMeasurements(
-    lifetimeEnergy: LifetimeEnergyResponse,
-    logicalLayout: LogicalLayoutResponse,
+  private async mapWithConcurrency<T, R>(
+    items: T[],
+    concurrency: number,
+    fn: (item: T) => Promise<R>,
+  ): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let nextIndex = 0;
+    const workers = Array.from(
+      { length: Math.min(concurrency, items.length) },
+      async () => {
+        while (nextIndex < items.length) {
+          const current = nextIndex++;
+          results[current] = await fn(items[current]);
+        }
+      },
+    );
+    await Promise.all(workers);
+    return results;
+  }
+
+  private findNearestTimestamp(
+    record: MeasurementRecord | undefined,
+    fallback: string,
+    addToNearestTimestamp: boolean,
+  ): string {
+    if (!addToNearestTimestamp || !record) return fallback;
+    let best: Measurement | undefined;
+    let bestDiff = Infinity;
+    const now = new Date();
+    // assuming measurements are sorted by time ascending
+    for (const m of record.measurements) {
+      const t = new Date(m.time).getTime();
+      if (t > now.getTime()) break;
+      const diff = Math.abs(now.getTime() - t);
+      if (diff < bestDiff) {
+        best = m;
+        bestDiff = diff;
+      }
+    }
+    const FIFTEEN_MINUTES = 15 * 60 * 1000;
+    return best && bestDiff <= FIFTEEN_MINUTES ? best.time : fallback;
+  }
+
+  async getLifetimeEnergyMeasurements(
+    tree: SolarEdgeTree,
     selectedItemTypes: ItemType[],
     measurements?: Measurements,
     addToNearestTimestamp: boolean = true,
-  ): Measurements {
-    const itemTypeMapping: { [key: string]: ItemType } = {
-      INVERTER_1PHASE: "INVERTER",
-      INVERTER_3PHASE: "INVERTER",
-      STRING: "STRING",
-      POWER_BOX: "OPTIMIZER",
-    };
+  ): Promise<Measurements> {
+    if (!tree.installationDate) {
+      throw new Error(
+        "getLifetimeEnergyMeasurements failed: tree has no installationDate",
+      );
+    }
+    const startDate = tree.installationDate.slice(0, 10);
+    const endDate = new Date().toISOString().slice(0, 10);
+    const fallbackTime = this.formatDateWithTimezone(new Date());
 
-    // flatten logical layout
-    const nodes: LogicalTreeNodeData[] = [];
-    const traverseNodes = (node: LogicalTreeNode) => {
-      if (
-        node.data &&
-        selectedItemTypes.includes(itemTypeMapping[node.data.type] || "UNKNOWN")
-      ) {
-        nodes.push(node.data);
-      }
-      if (node.children.length > 0) {
-        node.children.forEach((child) => traverseNodes(child));
-      }
-    };
-
-    traverseNodes(logicalLayout.logicalTree);
-
-    const lifetimeEnergyIds = Object.keys(lifetimeEnergy);
     const lifetimeEnergyMeasurements: Measurements = [];
 
-    const time = this.formatDateWithTimezone(new Date());
-
-    lifetimeEnergyIds.forEach((reporterId) => {
-      const node = nodes.find((n) => n.id.toString() === reporterId);
-      if (!node) return;
-      const value = lifetimeEnergy[reporterId].unscaledEnergy;
-      if (value === null || value === undefined) return;
-      let measurementRecord: MeasurementRecord | undefined;
-      if (node.type === "STRING") {
-        // find measurement record by name (as blueprint)
-        measurementRecord = measurements?.find(
-          (mr) => mr.deviceName === node.name,
-        );
-      } else {
-        // find measurement record with same serial number (as blueprint)
-        measurementRecord = measurements?.find(
-          (mr) => mr.device.id === node.serialNumber,
-        );
-      }
-      let lifetimeEnergyMeasurementRecord: MeasurementRecord | undefined;
-      if (measurementRecord) {
-        let timestamp: string = "";
-        if (addToNearestTimestamp) {
-          let best: Measurement | undefined;
-          let bestDiff = Infinity;
-          const now = new Date();
-          // assuming measurements are sorted by time ascending
-          for (const m of measurementRecord.measurements) {
-            const t = new Date(m.time).getTime();
-            if (t > now.getTime()) break;
-            const diff = Math.abs(now.getTime() - t);
-            if (diff < bestDiff) {
-              best = m;
-              bestDiff = diff;
-            }
-          }
-          // 15 Minuten in ms
-          const FIFTEEN_MINUTES = 15 * 60 * 1000;
-          if (best && bestDiff <= FIFTEEN_MINUTES) {
-            timestamp = best.time;
-          } else {
-            timestamp = this.formatDateWithTimezone(now);
-          }
-        }
-
-        lifetimeEnergyMeasurementRecord = JSON.parse(
-          JSON.stringify(measurementRecord),
-        ) as MeasurementRecord;
-        lifetimeEnergyMeasurementRecord.measurementType = "LIFETIME_ENERGY";
-        lifetimeEnergyMeasurementRecord.unitType = "WH";
-        lifetimeEnergyMeasurementRecord.timeUnitType = "";
-        lifetimeEnergyMeasurementRecord.measurements = [
+    if (selectedItemTypes.includes("SITE")) {
+      const energy = await this.getSiteLifetimeEnergy(startDate, endDate);
+      const blueprint = measurements?.find((mr) => mr.device.itemType === "SITE");
+      lifetimeEnergyMeasurements.push({
+        device: { itemType: "SITE", id: this.siteId, identifier: this.siteId },
+        measurementType: "LIFETIME_ENERGY",
+        unitType: "WH",
+        deviceName: tree.siteStructure.name || "",
+        timeUnitType: "",
+        measurements: [
           {
-            time: timestamp || time,
-            measurement: value,
+            time: this.findNearestTimestamp(blueprint, fallbackTime, addToNearestTimestamp),
+            measurement: energy,
           },
-        ];
-      } else {
-        // use data from logical layout to create measurement record
-        lifetimeEnergyMeasurementRecord = {
-          device: {
-            itemType: itemTypeMapping[node.type] || "UNKNOWN",
-            id: node.serialNumber || "",
-            identifier: node.serialNumber?.split("-")[0] || "",
-            // connectedToInverter: "",
-          },
-          measurementType: "LIFETIME_ENERGY",
-          unitType: "WH",
-          deviceName: node.name,
-          timeUnitType: "",
-          measurements: [
-            {
-              time: time,
-              measurement: value,
+        ],
+      });
+    }
+
+    for (const {
+      itemType,
+      urlSegment,
+      serialParam,
+    } of SolarEdgeDiagramScraperService.LIFETIME_ENERGY_DEVICE_TYPES) {
+      if (!selectedItemTypes.includes(itemType)) continue;
+      const items = this.extractItemsFromTreeByItemType(itemType, tree);
+      const results = await this.mapWithConcurrency(
+        items,
+        8,
+        async (item): Promise<MeasurementRecord | null> => {
+          if (!item.itemId.id) return null;
+          const energy = await this.getDeviceLifetimeEnergy(
+            urlSegment,
+            serialParam,
+            item.itemId.id,
+            startDate,
+            endDate,
+          );
+          if (energy === null) return null;
+          const blueprint = measurements?.find(
+            (mr) => mr.device.id === item.itemId.id,
+          );
+          return {
+            device: {
+              itemType,
+              id: item.itemId.id,
+              identifier: item.itemId.identifier || "",
+              connectedToInverter: item.itemId.connectedToInverter,
             },
-          ],
-        };
-      }
-      lifetimeEnergyMeasurements.push(lifetimeEnergyMeasurementRecord);
-    });
+            measurementType: "LIFETIME_ENERGY",
+            unitType: "WH",
+            deviceName: item.name || "",
+            timeUnitType: "",
+            measurements: [
+              {
+                time: this.findNearestTimestamp(blueprint, fallbackTime, addToNearestTimestamp),
+                measurement: energy,
+              },
+            ],
+          };
+        },
+      );
+      lifetimeEnergyMeasurements.push(
+        ...results.filter((r): r is MeasurementRecord => r !== null),
+      );
+    }
+
     return lifetimeEnergyMeasurements;
   }
 

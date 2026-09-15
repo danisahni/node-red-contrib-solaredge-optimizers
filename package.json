@@ -41,6 +41,7 @@
     "url": "git+https://github.com/danisahni/node-red-contrib-solaredge-optimizers.git"
   },
   "dependencies": {
+    "amazon-cognito-identity-js": "^6.3.20",
     "axios": "^1.17.0",
     "axios-cookiejar-support": "^7.0.0",
     "tough-cookie": "^6.0.1"

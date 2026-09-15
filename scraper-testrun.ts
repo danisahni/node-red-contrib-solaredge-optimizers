@@ -182,25 +182,8 @@ async function mainDiagramScraper() {
   const collectLifetimeEnergy = true;
   // append lifetime energy data to measurements
   if (collectLifetimeEnergy) {
-    const logicalLayout = await scraper.getLogicalLayout();
-    const lifetimeEnergy = await scraper.getLifetimeEnergy();
-    const lifetimeEnergyMeasurementsTest =
-      scraper.createLifetimeEnergyMeasurements(
-        lifetimeEnergy,
-        logicalLayout,
-        selectedItemTypes,
-      );
-    fs.writeFileSync(
-      "./lifetime-energy-measurements-test.json",
-      JSON.stringify(lifetimeEnergyMeasurementsTest, null, 2),
-    );
-    fs.writeFileSync(
-      "./logical-layout.json",
-      JSON.stringify(logicalLayout, null, 2),
-    );
-    const lifetimeEnergyMeasurements = scraper.createLifetimeEnergyMeasurements(
-      lifetimeEnergy,
-      logicalLayout,
+    const lifetimeEnergyMeasurements = await scraper.getLifetimeEnergyMeasurements(
+      tree,
       selectedItemTypes,
       measurements,
     );
