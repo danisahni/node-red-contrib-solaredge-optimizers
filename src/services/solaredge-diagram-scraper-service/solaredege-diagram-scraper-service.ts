@@ -58,18 +58,8 @@ export class SolarEdgeDiagramScraperService {
       }
       this.api.defaults.headers.common["X-CSRF-TOKEN"] =
         response.headers["x-csrf-token"];
-      await this.bootstrapSession();
     } catch (error: any) {
       throw new Error(`Login failed: ${error.message}`);
-    }
-  }
-
-  private async bootstrapSession(): Promise<void> {
-    try {
-      const url = `https://monitoring.solaredge.com/solaredge-web/p/chartParamsList?fieldId=${this.siteId}`;
-      await this.api.get(url);
-    } catch (error: any) {
-      throw new Error(`bootstrapSession failed: ${error.message}`);
     }
   }
 
