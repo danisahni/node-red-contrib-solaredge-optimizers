@@ -22,7 +22,8 @@
     "version": ">=3.1.1",
     "nodes": {
       "solaredge-optimizers": "dist/nodes/solaredge-optimizers.js",
-      "solaredge-diagram-data-scraper": "dist/nodes/solaredge-diagram-data-scraper.js"
+      "solaredge-diagram-data-scraper": "dist/nodes/solaredge-diagram-data-scraper.js",
+      "solaredge-custom-analysis-scraper": "dist/nodes/solaredge-custom-analysis-scraper.js"
     }
   },
   "engines": {

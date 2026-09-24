@@ -8,6 +8,15 @@ import {
   SiteParameter,
   StringParameter,
 } from "../services/solaredge-diagram-scraper-service/models/parameters";
+import {
+  BatteryParameter as CustomAnalysisBatteryParameter,
+  InverterParameter as CustomAnalysisInverterParameter,
+  MeasurementGranularity,
+  MeterParameter as CustomAnalysisMeterParameter,
+  OptimizerParameter as CustomAnalysisOptimizerParameter,
+  SiteParameter as CustomAnalysisSiteParameter,
+  StringParameter as CustomAnalysisStringParameter,
+} from "../services/solaredge-custom-analysis-service/models/parameters";
 
 export interface SolarEdgeOptimizersConfig extends NodeDef {
   siteId: string;
@@ -31,6 +40,23 @@ export interface SolarEdgeDiagramDataScraperConfig extends NodeDef {
   selectedOptimizerParameters?: OptimizerParameter[];
   selectedMeterParameters?: MeterParameter[];
   selectedBatteryParameters?: BatteryParameter[];
+}
+
+export interface SolarEdgeCustomAnalysisScraperConfig extends NodeDef {
+  siteId: string;
+  timeZoneSettings: "Local" | "UTC";
+  collectLifetimeEnergy: boolean;
+  measurementGranularity?: MeasurementGranularity;
+  useLegacyParameterNames?: boolean;
+  formatForInfluxDb: boolean;
+  influxDbMeasurement: string;
+  selectedItemTypes?: ItemType[];
+  selectedSiteParameters?: CustomAnalysisSiteParameter[];
+  selectedInverterParameters?: CustomAnalysisInverterParameter[];
+  selectedStringParameters?: CustomAnalysisStringParameter[];
+  selectedOptimizerParameters?: CustomAnalysisOptimizerParameter[];
+  selectedMeterParameters?: CustomAnalysisMeterParameter[];
+  selectedBatteryParameters?: CustomAnalysisBatteryParameter[];
 }
 
 export interface InfluxDbEntry {

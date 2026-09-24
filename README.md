@@ -12,7 +12,7 @@ npm install node-red-contrib-solaredge-optimizers
 
 ## Usage
 
-There are two nodes available with two different approaches to scrape data from the solaredge monitoring platform. Their usage will be explained below
+There are three nodes available with different approaches to scrape data from the solaredge monitoring platform. Their usage will be explained below
 
 ### solaredge-optimizers node (deprecated)
 
@@ -42,6 +42,18 @@ Furthermore, optional parameters can be specified:
 - **InfluxDB Measurement**: In case _Format for InfluxDB_ is checked, the name of the measurement.
 - **Types**: Select the type of components for which data shall be collected. At the time, this includes **SITE**, **INVERTER**, **STRING**, **OPTIMIZER**, **METER**, **BATTERY**
 - **Parameters**: For each selected component type you can choose the parameters that shall be collected.
+
+### solaredge-custom-analysis-scraper Node
+
+This node collects data from the same API as SolarEdge's "Custom Analysis" page (`/services/cni/ui-api/.../generate-chart`). Unlike `solaredge-diagram-data-scraper`, it supports a **configurable measurement interval** - the diagram-page API it uses is permanently fixed at 5-minute resolution.
+
+The trade-off: this API uses a different metric-naming scheme than the diagram page (e.g. `active_power` instead of `AC_PRODUCTION_POWER`), and a few parameters available on the diagram page have no equivalent here - site-level power values, inverter consumption, `KWH_KWP_RATIO`, and battery charge/discharge power.
+
+The node needs the same required inputs as `solaredge-diagram-data-scraper` (Username, Password, Site ID), plus:
+
+- **Measurement Interval**: Resolution of the returned time series - **5 minutes**, **15 minutes**, **1 hour** or **1 day**.
+- **Legacy Parameter Names**: Old `solaredge-diagram-data-scraper` parameter names (e.g. `AC_PRODUCTION_POWER`) are always accepted as input on this node too, so switching over doesn't require reselecting parameters you already had configured. By default, however, the *output* field names (and therefore InfluxDB field names) use this node's new names. Enable this option to have the output use the old names instead, for continuity with data already collected under those field names. Only parameters with a verified old-name equivalent are affected.
+- All other options (Time Zone Settings, Collect Lifetime Energy, Format For InfluxDB, InfluxDB Measurement, Types, Parameters) work the same way as on `solaredge-diagram-data-scraper`, just against this node's own parameter catalog.
 
 ## Sources / Credits
 
