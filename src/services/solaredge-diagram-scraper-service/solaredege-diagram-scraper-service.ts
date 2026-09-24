@@ -30,10 +30,10 @@ const COGNITO_USER_POOL_ID = "eu-central-1_fVUTz39em";
 const COGNITO_CLIENT_ID = "ugfnsujd3384sshcjehaphlh3";
 
 export class SolarEdgeDiagramScraperService {
-  private siteId: string;
+  protected siteId: string;
   private username: string;
   private password: string;
-  private api: AxiosInstance;
+  protected api: AxiosInstance;
 
   constructor(siteid: string, username: string, password: string) {
     this.siteId = siteid;
