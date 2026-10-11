@@ -60,7 +60,13 @@ By default the node fetches the current day (UTC). To fetch past data, e.g. to f
 - `msg.startDate`: first UTC calendar day, as `YYYY-MM-DD`. Without `msg.endDate`, data is fetched from this day until today.
 - `msg.endDate`: last UTC calendar day (inclusive), as `YYYY-MM-DD`. Without `msg.startDate`, only this day is fetched.
 
-Longer ranges are split into several requests automatically. Note that SolarEdge only keeps a limited history: optimizer and string data is available for the last 90 days (at any interval), the other types for the last 2 years at 5 minute / 15 minute / 1 hour interval - daily values go back further. Older data is rejected with an error message that names the limit.
+Longer ranges are split into several requests automatically. Note that SolarEdge only keeps a limited history. As of October 2026, optimizer and string data is available for the last 90 days (at any interval), the other types for the last 2 years at 5 minute / 15 minute / 1 hour interval. Daily inverter values go back further (tested back to 2022). These limits are set by SolarEdge and may change - older data is rejected with an error message that names the current limit.
+
+Fetching a range that overlaps data already in InfluxDB does not create duplicates: InfluxDB identifies a point by measurement, tags and timestamp, so the existing point is simply overwritten with the same values. Keep in mind:
+
+- **Use the same Measurement Interval** as for your regular data, or a separate InfluxDB measurement name per interval. 15 minute, hourly and daily timestamps coincide with some 5 minute timestamps, so backfilling with a different interval into the same measurement overwrites those points with aggregated values.
+- Renaming a device in SolarEdge changes the `deviceName` tag and therefore starts a new series.
+- Toggling **Legacy Parameter Names** changes the field names, so the same values would be stored under both names.
 
 ## Sources / Credits
 

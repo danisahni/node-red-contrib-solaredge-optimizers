@@ -453,10 +453,18 @@
   <p>
     If neither is set, the node fetches today (UTC). Use these to archive
     past data, e.g. after a database outage. Longer ranges are split into
-    several requests automatically. SolarEdge only keeps a limited history:
-    optimizer and string data is available for the last 90 days (at any
-    interval), the other types for the last 2 years at 5 minute / 15 minute
-    / 1 hour interval - daily values go back further. Older data is rejected
-    with an error that names the limit.
+    several requests automatically. SolarEdge only keeps a limited history.
+    As of October 2026, optimizer and string data is available for the last
+    90 days (at any interval), the other types for the last 2 years at
+    5 minute / 15 minute / 1 hour interval; daily inverter values go back
+    further. These limits may change - older data is rejected with an error
+    that names the current limit.
+  </p>
+  <p>
+    Overlapping data in InfluxDB is simply overwritten, not duplicated. When
+    backfilling, use the same <b>Measurement Interval</b> as for your regular
+    data (or a separate InfluxDB measurement), since e.g. 15 minute
+    timestamps coincide with 5 minute ones and would overwrite them with
+    aggregated values.
   </p>
 </script>
