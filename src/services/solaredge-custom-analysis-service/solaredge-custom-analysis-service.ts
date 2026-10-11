@@ -257,6 +257,17 @@ export class SolarEdgeCustomAnalysisScraperService {
     ]),
   );
 
+  // generate-chart rejects ranges above a per-metric limit (e.g. 32 days for
+  // inverter active power, 14 days for optimizer data at hourly or finer
+  // resolution), so longer ranges are fetched in chunks of this many days.
+  private static readonly MAX_DAYS_PER_REQUEST = 14;
+
+  /**
+   * Fetches the requested measurements for the UTC calendar days
+   * startDate..endDate (inclusive, YYYY-MM-DD). Defaults to today if neither
+   * is given; if only one is given, only that day is fetched. Ranges longer
+   * than MAX_DAYS_PER_REQUEST are split into several requests and merged.
+   */
   async getMeasurements(
     requestedMeasurements: MeasurementRequestData,
     granularity: MeasurementGranularity = "FIVE_MINUTES",
@@ -265,15 +276,63 @@ export class SolarEdgeCustomAnalysisScraperService {
     endDate?: string,
   ): Promise<Measurements> {
     if (!startDate && !endDate) {
-      const today = new Date();
-      endDate = today.toISOString().slice(0, 10);
-      startDate = endDate;
+      startDate = endDate = new Date().toISOString().slice(0, 10);
     } else if (!startDate) {
       startDate = endDate;
-    } else {
+    } else if (!endDate) {
       endDate = startDate;
     }
     if (requestedMeasurements.length === 0) return [];
+
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const end = Date.parse(`${endDate}T00:00:00.000Z`);
+    const merged: Measurements = [];
+    const recordsByKey = new Map<string, MeasurementRecord>();
+    for (
+      let chunkStart = Date.parse(`${startDate}T00:00:00.000Z`);
+      chunkStart <= end;
+      chunkStart +=
+        SolarEdgeCustomAnalysisScraperService.MAX_DAYS_PER_REQUEST * DAY_MS
+    ) {
+      const chunkEnd = Math.min(
+        chunkStart +
+          (SolarEdgeCustomAnalysisScraperService.MAX_DAYS_PER_REQUEST - 1) *
+            DAY_MS,
+        end,
+      );
+      const chunk = await this.getMeasurementsForRange(
+        requestedMeasurements,
+        granularity,
+        useLegacyParameterNames,
+        new Date(chunkStart).toISOString().slice(0, 10),
+        new Date(chunkEnd).toISOString().slice(0, 10),
+      );
+      for (const record of chunk) {
+        const key = `${record.device.itemType}:${record.device.id}:${record.device.uuid ?? ""}:${record.measurementType}`;
+        const existing = recordsByKey.get(key);
+        if (existing) {
+          // DAY points sit on local midnight, which can fall inside two
+          // adjacent UTC chunks - skip timestamps already collected.
+          const seen = new Set(existing.measurements.map((m) => m.time));
+          existing.measurements.push(
+            ...record.measurements.filter((m) => !seen.has(m.time)),
+          );
+        } else {
+          recordsByKey.set(key, record);
+          merged.push(record);
+        }
+      }
+    }
+    return merged;
+  }
+
+  private async getMeasurementsForRange(
+    requestedMeasurements: MeasurementRequestData,
+    granularity: MeasurementGranularity,
+    useLegacyParameterNames: boolean,
+    startDate: string,
+    endDate: string,
+  ): Promise<Measurements> {
 
     // Group by itemType, then by metric category within that itemType,
     // since one datasource can only carry one shared metrics list.
@@ -362,7 +421,12 @@ export class SolarEdgeCustomAnalysisScraperService {
         datasources: datasources.map(({ group, ...d }) => d),
       });
     } catch (error: any) {
-      throw new Error(`getMeasurements failed: ${error.message}`);
+      // SolarEdge explains range/retention limits in the response body, e.g.
+      // "Optimizer output power data older than 90 days is not available".
+      const reason = error.response?.data?.message ?? error.message;
+      throw new Error(
+        `getMeasurements failed for ${startDate}..${endDate}: ${reason}`,
+      );
     }
 
     return this.parseResponse(response.data, datasources, useLegacyParameterNames);

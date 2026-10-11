@@ -12,6 +12,39 @@ import {
 } from "../services/solaredge-custom-analysis-service/models/measurement-request";
 import { Measurements } from "../services/solaredge-custom-analysis-service/models/measurements";
 
+// Reads the optional msg.startDate / msg.endDate (YYYY-MM-DD, UTC). Neither
+// set means today; only startDate set means startDate until today.
+function parseDateRange(msg: NodeMessageInFlow): {
+  startDate?: string;
+  endDate?: string;
+} {
+  const validate = (name: string, value: unknown): string | undefined => {
+    if (value === undefined || value === null || value === "") return undefined;
+    const time =
+      typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? Date.parse(`${value}T00:00:00.000Z`)
+        : NaN;
+    // the round trip also rejects dates like 2026-02-31
+    if (isNaN(time) || new Date(time).toISOString().slice(0, 10) !== value) {
+      throw new Error(
+        `msg.${name} must be a date in the format YYYY-MM-DD, got "${value}"`,
+      );
+    }
+    return value;
+  };
+  const startDate = validate("startDate", (msg as any).startDate);
+  let endDate = validate("endDate", (msg as any).endDate);
+  if (startDate && !endDate) {
+    endDate = new Date().toISOString().slice(0, 10);
+  }
+  if (startDate && endDate && startDate > endDate) {
+    throw new Error(
+      `msg.startDate (${startDate}) must not be after msg.endDate (${endDate})`,
+    );
+  }
+  return { startDate, endDate };
+}
+
 module.exports = function (RED: NodeAPI) {
   function SolarEdgeCustomAnalysisScraperNode(
     this: any,
@@ -44,6 +77,8 @@ module.exports = function (RED: NodeAPI) {
         done: (err?: Error) => void,
       ) {
         try {
+          // optional past date range (UTC calendar days, YYYY-MM-DD)
+          const { startDate, endDate } = parseDateRange(msg);
           const scraper = new SolarEdgeCustomAnalysisScraperService(
             node.siteId,
             node.credentials.username,
@@ -81,6 +116,8 @@ module.exports = function (RED: NodeAPI) {
             measurementRequestData,
             node.measurementGranularity,
             node.useLegacyParameterNames,
+            startDate,
+            endDate,
           );
           // collect lifetime energy data if selected
           if (node.collectLifetimeEnergy) {

@@ -55,6 +55,13 @@ The node needs the same required inputs as `solaredge-diagram-data-scraper` (Use
 - **Legacy Parameter Names**: Old `solaredge-diagram-data-scraper` parameter names (e.g. `AC_PRODUCTION_POWER`) are always accepted as input on this node too, so switching over doesn't require reselecting parameters you already had configured. By default, however, the *output* field names (and therefore InfluxDB field names) use this node's new names. Enable this option to have the output use the old names instead, for continuity with data already collected under those field names. Only parameters with a verified old-name equivalent are affected.
 - All other options (Time Zone Settings, Collect Lifetime Energy, Format For InfluxDB, InfluxDB Measurement, Types, Parameters) work the same way as on `solaredge-diagram-data-scraper`, just against this node's own parameter catalog.
 
+By default the node fetches the current day (UTC). To fetch past data, e.g. to fill gaps after a database outage, set these optional properties on the incoming message:
+
+- `msg.startDate`: first UTC calendar day, as `YYYY-MM-DD`. Without `msg.endDate`, data is fetched from this day until today.
+- `msg.endDate`: last UTC calendar day (inclusive), as `YYYY-MM-DD`. Without `msg.startDate`, only this day is fetched.
+
+Longer ranges are split into several requests automatically. Note that SolarEdge only keeps a limited history: optimizer and string data is available for the last 90 days (at any interval), the other types for the last 2 years at 5 minute / 15 minute / 1 hour interval - daily values go back further. Older data is rejected with an error message that names the limit.
+
 ## Sources / Credits
 
 The scraping code from the layout page is based on this [gist](https://gist.github.com/cooldil/0b2c5ee22befbbfcdefd06c9cf2b7a98) and translated from Python to JavaScript.

@@ -437,4 +437,26 @@
     setting. Only parameters with a verified old-name equivalent are
     affected - everything else keeps its current name either way.
   </p>
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="optional">startDate <span class="property-type">string</span></dt>
+    <dd>
+      First UTC calendar day to fetch, as <code>YYYY-MM-DD</code>. Without
+      <code>endDate</code>, data is fetched from this day until today.
+    </dd>
+    <dt class="optional">endDate <span class="property-type">string</span></dt>
+    <dd>
+      Last UTC calendar day to fetch (inclusive), as <code>YYYY-MM-DD</code>.
+      Without <code>startDate</code>, only this day is fetched.
+    </dd>
+  </dl>
+  <p>
+    If neither is set, the node fetches today (UTC). Use these to archive
+    past data, e.g. after a database outage. Longer ranges are split into
+    several requests automatically. SolarEdge only keeps a limited history:
+    optimizer and string data is available for the last 90 days (at any
+    interval), the other types for the last 2 years at 5 minute / 15 minute
+    / 1 hour interval - daily values go back further. Older data is rejected
+    with an error that names the limit.
+  </p>
 </script>
