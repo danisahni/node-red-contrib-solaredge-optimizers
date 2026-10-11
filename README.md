@@ -22,7 +22,7 @@ Please migrate to the **solaredge-diagram-data-scraper** node below - select **O
 
 ### solaredge-diagram-data-scraper Node
 
-This node collects data from the diagram page of the solaredge monitoring platform for the current day.
+This node collects data from the diagram page of the solaredge monitoring platform for the current day (or a past date range, see below).
 
 The node needs the following inputs as required parameters:
 
@@ -42,6 +42,13 @@ Furthermore, optional parameters can be specified:
 - **InfluxDB Measurement**: In case _Format for InfluxDB_ is checked, the name of the measurement.
 - **Types**: Select the type of components for which data shall be collected. At the time, this includes **SITE**, **INVERTER**, **STRING**, **OPTIMIZER**, **METER**, **BATTERY**
 - **Parameters**: For each selected component type you can choose the parameters that shall be collected.
+
+By default the node fetches the current day. To fetch past data, e.g. to fill gaps after a database outage, set these optional properties on the incoming message:
+
+- `msg.startDate`: first calendar day (in the site's time zone), as `YYYY-MM-DD`. Without `msg.endDate`, data is fetched from this day until today.
+- `msg.endDate`: last calendar day (inclusive), as `YYYY-MM-DD`. Without `msg.startDate`, only this day is fetched.
+
+The node requests one day at a time, because SolarEdge returns coarser data for longer ranges (e.g. hourly instead of 5 minute values) - this way past days have the same resolution as the regular data. As of October 2026, SolarEdge keeps optimizer data for roughly the last 4 months (string data somewhat longer) and the other types for the last 2 years. These limits are set by SolarEdge and may change; older data is rejected with an error such as `DATASET_TOO_LARGE`. Overlapping data in InfluxDB is overwritten, not duplicated (see the notes below under _solaredge-custom-analysis-scraper_).
 
 ### solaredge-custom-analysis-scraper Node
 

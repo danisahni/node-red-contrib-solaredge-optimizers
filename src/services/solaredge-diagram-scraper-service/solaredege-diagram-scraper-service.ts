@@ -158,29 +158,73 @@ export class SolarEdgeDiagramScraperService {
     return data;
   }
 
+  /**
+   * Fetches the requested measurements for the calendar days
+   * startDate..endDate (inclusive, YYYY-MM-DD, in the site's time zone).
+   * Defaults to today if neither is given; if only one is given, only that
+   * day is fetched.
+   *
+   * devices-measurements picks a coarser resolution the longer the range is
+   * (e.g. inverter: 5 minutes for one day, 15 minutes for a few days, 1 hour
+   * for two weeks), so ranges are fetched one day per request to keep the
+   * same resolution as a regular single-day run.
+   */
   async getMeasurements(
     requestedMeasurements: MeasurementRequestData,
     startDate?: string,
     endDate?: string,
   ): Promise<Measurements> {
-    try {
-      if (!startDate && !endDate) {
-        const today = new Date();
-        // const yesterday = new Date(today);
-        // yesterday.setDate(today.getDate() - 1);
-        endDate = today.toISOString().slice(0, 10);
-        // startDate = yesterday.toISOString().slice(0, 10);
-        startDate = endDate;
-      } else if (!startDate) {
-        startDate = endDate;
-      } else {
-        endDate = startDate;
+    if (!startDate && !endDate) {
+      startDate = endDate = new Date().toISOString().slice(0, 10);
+    } else if (!startDate) {
+      startDate = endDate;
+    } else if (!endDate) {
+      endDate = startDate;
+    }
+
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const end = Date.parse(`${endDate}T00:00:00.000Z`);
+    const merged: Measurements = [];
+    const recordsByKey = new Map<string, MeasurementRecord>();
+    for (
+      let current = Date.parse(`${startDate}T00:00:00.000Z`);
+      current <= end;
+      current += DAY_MS
+    ) {
+      const date = new Date(current).toISOString().slice(0, 10);
+      for (const record of await this.getMeasurementsForDay(
+        requestedMeasurements,
+        date,
+      )) {
+        const key = `${record.device.itemType}:${record.device.id}:${record.device.identifier}:${record.measurementType}`;
+        const existing = recordsByKey.get(key);
+        if (existing) {
+          existing.measurements.push(...record.measurements);
+        } else {
+          recordsByKey.set(key, record);
+          merged.push(record);
+        }
       }
-      const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/devices-measurements?start-date=${startDate}&end-date=${endDate}`;
+    }
+    return merged;
+  }
+
+  private async getMeasurementsForDay(
+    requestedMeasurements: MeasurementRequestData,
+    date: string,
+  ): Promise<Measurements> {
+    try {
+      const url = `https://monitoring.solaredge.com/services/charts/site/${this.siteId}/devices-measurements?start-date=${date}&end-date=${date}`;
       const response = await this.api.post(url, requestedMeasurements);
       return response.data as Measurements;
     } catch (error: any) {
-      throw new Error(`getMeasurements failed: ${error.message}`);
+      // e.g. {"error":{"code":"DATASET_TOO_LARGE",...}} for data older than
+      // SolarEdge keeps
+      const details = error.response?.data?.error;
+      const reason = details
+        ? `${details.code}: ${details.description}`
+        : error.message;
+      throw new Error(`getMeasurements failed for ${date}: ${reason}`);
     }
   }
 
