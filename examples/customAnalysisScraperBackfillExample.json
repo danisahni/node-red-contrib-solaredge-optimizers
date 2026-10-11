@@ -1,0 +1,144 @@
+[
+  {
+    "id": "caBackfillComment1",
+    "type": "comment",
+    "z": "8e2d41a7c3f05b96",
+    "name": "Backfill past days via msg.startDate / msg.endDate (YYYY-MM-DD, UTC)",
+    "info": "The regular inject fetches today. The two backfill injects set msg.startDate / msg.endDate to fetch past days, e.g. after a database outage. Without msg.endDate, data is fetched until today.\n\nLonger ranges are split into several requests automatically. Use the same Measurement Interval as for your regular data (or a separate InfluxDB measurement), since e.g. 15 minute timestamps coincide with 5 minute ones. Data that is already in InfluxDB is overwritten, not duplicated.",
+    "x": 340,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "caBackfillInjectHourly1",
+    "type": "inject",
+    "z": "8e2d41a7c3f05b96",
+    "name": "Every Hour",
+    "props": [],
+    "repeat": "3600",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 200,
+    "y": 440,
+    "wires": [["caBackfillNode1"]]
+  },
+  {
+    "id": "caBackfillInjectRange1",
+    "type": "inject",
+    "z": "8e2d41a7c3f05b96",
+    "name": "Backfill fixed range",
+    "props": [
+      {
+        "p": "startDate",
+        "v": "2026-09-01",
+        "vt": "str"
+      },
+      {
+        "p": "endDate",
+        "v": "2026-09-30",
+        "vt": "str"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 230,
+    "y": 500,
+    "wires": [["caBackfillNode1"]]
+  },
+  {
+    "id": "caBackfillInjectLast7Days1",
+    "type": "inject",
+    "z": "8e2d41a7c3f05b96",
+    "name": "Backfill last 7 days",
+    "props": [
+      {
+        "p": "startDate",
+        "v": "$substring($fromMillis($millis() - 6 * 86400000), 0, 10)",
+        "vt": "jsonata"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 230,
+    "y": 560,
+    "wires": [["caBackfillNode1"]]
+  },
+  {
+    "id": "caBackfillNode1",
+    "type": "solaredge-custom-analysis-scraper",
+    "z": "8e2d41a7c3f05b96",
+    "siteId": "12345",
+    "timeZoneSettings": "UTC",
+    "measurementGranularity": "FIVE_MINUTES",
+    "useLegacyParameterNames": false,
+    "collectLifetimeEnergy": false,
+    "formatForInfluxDb": true,
+    "influxDbMeasurement": "solaredge",
+    "selectedItemTypes": ["INVERTER", "OPTIMIZER"],
+    "selectedSiteParameters": [],
+    "selectedInverterParameters": ["active_power"],
+    "selectedStringParameters": [],
+    "selectedOptimizerParameters": ["output_power", "energy_since_last_telem"],
+    "selectedMeterParameters": [],
+    "selectedBatteryParameters": [],
+    "x": 530,
+    "y": 500,
+    "wires": [["caBackfillInfluxBatch1", "caBackfillDebug1"]]
+  },
+  {
+    "id": "caBackfillInfluxBatch1",
+    "type": "influxdb batch",
+    "z": "8e2d41a7c3f05b96",
+    "influxdb": "caBackfillInfluxConfig1",
+    "precision": "",
+    "retentionPolicy": "",
+    "name": "",
+    "database": "database",
+    "precisionV18FluxV20": "ms",
+    "retentionPolicyV18Flux": "",
+    "org": "your_organization",
+    "bucket": "test_bucket",
+    "x": 810,
+    "y": 480,
+    "wires": []
+  },
+  {
+    "id": "caBackfillDebug1",
+    "type": "debug",
+    "z": "8e2d41a7c3f05b96",
+    "name": "debug",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "false",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 790,
+    "y": 540,
+    "wires": []
+  },
+  {
+    "id": "caBackfillInfluxConfig1",
+    "type": "influxdb",
+    "hostname": "127.0.0.1",
+    "port": "8086",
+    "protocol": "http",
+    "database": "database",
+    "name": "Your InfluxDB",
+    "usetls": false,
+    "tls": "",
+    "influxdbVersion": "2.0",
+    "url": "http://localhost:8086",
+    "timeout": "10",
+    "rejectUnauthorized": false
+  }
+]

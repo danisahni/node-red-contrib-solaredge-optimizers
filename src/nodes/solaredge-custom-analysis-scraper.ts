@@ -1,6 +1,7 @@
 import { NodeAPI, NodeMessage, NodeMessageInFlow } from "node-red";
 import { SolarEdgeCustomAnalysisScraperConfig } from "../models/types";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
+import { DateRangeUtils } from "../services/date-range-utils";
 import { SolarEdgeCustomAnalysisScraperService } from "../services/solaredge-custom-analysis-service/solaredge-custom-analysis-service";
 import { ItemType } from "../models";
 import {
@@ -44,6 +45,8 @@ module.exports = function (RED: NodeAPI) {
         done: (err?: Error) => void,
       ) {
         try {
+          // optional past date range (UTC calendar days, YYYY-MM-DD)
+          const { startDate, endDate } = DateRangeUtils.parseDateRange(msg);
           const scraper = new SolarEdgeCustomAnalysisScraperService(
             node.siteId,
             node.credentials.username,
@@ -81,6 +84,8 @@ module.exports = function (RED: NodeAPI) {
             measurementRequestData,
             node.measurementGranularity,
             node.useLegacyParameterNames,
+            startDate,
+            endDate,
           );
           // collect lifetime energy data if selected
           if (node.collectLifetimeEnergy) {

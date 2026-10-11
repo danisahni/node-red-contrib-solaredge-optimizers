@@ -1,6 +1,7 @@
 import { NodeAPI, NodeMessage, NodeMessageInFlow } from "node-red";
 import { SolarEdgeDiagramDataScraperConfig } from "../models/types";
 import { InfluxDbUtils } from "../services/influxdb-utils.service";
+import { DateRangeUtils } from "../services/date-range-utils";
 import { SolarEdgeDiagramScraperService } from "../services/solaredge-diagram-scraper-service/solaredege-diagram-scraper-service";
 import { AnyParameter, ItemType, MeasurementRequestData } from "../models";
 import { Measurements } from "../services/solaredge-diagram-scraper-service/models/measurements";
@@ -34,6 +35,8 @@ module.exports = function (RED: NodeAPI) {
         done: (err?: Error) => void,
       ) {
         try {
+          // optional past date range (site-local calendar days, YYYY-MM-DD)
+          const { startDate, endDate } = DateRangeUtils.parseDateRange(msg);
           const scraper = new SolarEdgeDiagramScraperService(
             node.siteId,
             node.credentials.username,
@@ -90,6 +93,8 @@ module.exports = function (RED: NodeAPI) {
           // get measurements
           const measurements: Measurements = await scraper.getMeasurements(
             measurementRequestData,
+            startDate,
+            endDate,
           );
           // collect lifetime energy data if selected
           if (node.collectLifetimeEnergy) {
