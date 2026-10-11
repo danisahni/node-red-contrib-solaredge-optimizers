@@ -453,7 +453,9 @@
   <p>
     If neither is set, the node fetches today (UTC). Use these to archive
     past data, e.g. after a database outage. Longer ranges are split into
-    several requests automatically. SolarEdge only keeps a limited history.
+    several requests automatically, so the selected Measurement Interval is
+    kept for any range length (as of October 2026, meter values always come
+    in 15 minute steps). SolarEdge only keeps a limited history.
     As of October 2026, optimizer and string data is available for the last
     90 days (at any interval), the other types for the last 2 years at
     5 minute / 15 minute / 1 hour interval; daily inverter values go back

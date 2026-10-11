@@ -419,8 +419,11 @@
   </dl>
   <p>
     If neither is set, the node fetches today. Use these to archive past
-    data, e.g. after a database outage. Days are requested one at a time so
-    they keep the regular resolution. As of October 2026, SolarEdge keeps
+    data, e.g. after a database outage. SolarEdge returns coarser data the
+    longer the requested range is, so days are requested one at a time and
+    keep the regular resolution (as of October 2026: 5 minutes for inverter,
+    string, battery and meter power values, 15 minutes for optimizer, site
+    and meter energy values). As of October 2026, SolarEdge keeps
     optimizer data for roughly the last 4 months and the other types for the
     last 2 years; older data is rejected with an error such as
     <code>DATASET_TOO_LARGE</code>. Overlapping data in InfluxDB is

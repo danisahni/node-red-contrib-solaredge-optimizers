@@ -1,0 +1,142 @@
+[
+  {
+    "id": "backfillComment1",
+    "type": "comment",
+    "z": "5b0c7e1f2a9d4c31",
+    "name": "Backfill past days via msg.startDate / msg.endDate (YYYY-MM-DD)",
+    "info": "The regular inject fetches today. The two backfill injects set msg.startDate / msg.endDate to fetch past days, e.g. after a database outage. Without msg.endDate, data is fetched until today.\n\nDays are requested one at a time, so past days have the same resolution as the regular data. Data that is already in InfluxDB is overwritten, not duplicated.",
+    "x": 330,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "backfillInjectHourly1",
+    "type": "inject",
+    "z": "5b0c7e1f2a9d4c31",
+    "name": "Every Hour",
+    "props": [],
+    "repeat": "3600",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 200,
+    "y": 440,
+    "wires": [["backfillDiagramNode1"]]
+  },
+  {
+    "id": "backfillInjectRange1",
+    "type": "inject",
+    "z": "5b0c7e1f2a9d4c31",
+    "name": "Backfill fixed range",
+    "props": [
+      {
+        "p": "startDate",
+        "v": "2026-09-01",
+        "vt": "str"
+      },
+      {
+        "p": "endDate",
+        "v": "2026-09-14",
+        "vt": "str"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 230,
+    "y": 500,
+    "wires": [["backfillDiagramNode1"]]
+  },
+  {
+    "id": "backfillInjectLast7Days1",
+    "type": "inject",
+    "z": "5b0c7e1f2a9d4c31",
+    "name": "Backfill last 7 days",
+    "props": [
+      {
+        "p": "startDate",
+        "v": "$substring($fromMillis($millis() - 6 * 86400000), 0, 10)",
+        "vt": "jsonata"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 230,
+    "y": 560,
+    "wires": [["backfillDiagramNode1"]]
+  },
+  {
+    "id": "backfillDiagramNode1",
+    "type": "solaredge-diagram-data-scraper",
+    "z": "5b0c7e1f2a9d4c31",
+    "siteId": "12345",
+    "timeZoneSettings": "UTC",
+    "collectLifetimeEnergy": false,
+    "formatForInfluxDb": true,
+    "influxDbMeasurement": "optimizers",
+    "selectedItemTypes": ["OPTIMIZER"],
+    "selectedSiteParameters": [],
+    "selectedInverterParameters": [],
+    "selectedStringParameters": [],
+    "selectedOptimizerParameters": ["PRODUCTION_POWER", "PRODUCTION_ENERGY"],
+    "selectedMeterParameters": [],
+    "selectedBatteryParameters": [],
+    "x": 520,
+    "y": 500,
+    "wires": [["backfillInfluxBatch1", "backfillDebug1"]]
+  },
+  {
+    "id": "backfillInfluxBatch1",
+    "type": "influxdb batch",
+    "z": "5b0c7e1f2a9d4c31",
+    "influxdb": "backfillInfluxConfig1",
+    "precision": "",
+    "retentionPolicy": "",
+    "name": "",
+    "database": "database",
+    "precisionV18FluxV20": "ms",
+    "retentionPolicyV18Flux": "",
+    "org": "your_organization",
+    "bucket": "test_bucket",
+    "x": 790,
+    "y": 480,
+    "wires": []
+  },
+  {
+    "id": "backfillDebug1",
+    "type": "debug",
+    "z": "5b0c7e1f2a9d4c31",
+    "name": "debug",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "false",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 770,
+    "y": 540,
+    "wires": []
+  },
+  {
+    "id": "backfillInfluxConfig1",
+    "type": "influxdb",
+    "hostname": "127.0.0.1",
+    "port": "8086",
+    "protocol": "http",
+    "database": "database",
+    "name": "Your InfluxDB",
+    "usetls": false,
+    "tls": "",
+    "influxdbVersion": "2.0",
+    "url": "http://localhost:8086",
+    "timeout": "10",
+    "rejectUnauthorized": false
+  }
+]
